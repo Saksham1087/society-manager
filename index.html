@@ -40,7 +40,17 @@
         <h2 class="text-lg font-bold text-gray-800 border-b pb-2">Maintenance Entry</h2>
         <form id="formMaintenance" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-gray-600 mb-1">Category</label>
+            <label class="block text-sm font-medium text-gray-600 mb-1">Member Name</label>
+            <input type="text" id="maintMember" required placeholder="Full name"
+                   class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-600 mb-1">Flat No</label>
+            <input type="text" id="maintFlat" required placeholder="e.g. A-101"
+                   class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-600 mb-1">Maintenance Category</label>
             <select id="maintCategory" required
                     class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
               <option value="">Select Category</option>
@@ -60,27 +70,12 @@
                    class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-600 mb-1">Payee / Vendor</label>
-            <input type="text" id="maintVendor" required placeholder="Vendor name"
-                   class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
-          </div>
-          <div>
             <label class="block text-sm font-medium text-gray-600 mb-1">Payment Mode</label>
             <select id="maintMode" required
                     class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
               <option value="">Select Mode</option>
               <option>Cash</option><option>Cheque</option><option>UPI</option><option>Bank Transfer</option>
             </select>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-600 mb-1">Bill / Ref No.</label>
-            <input type="text" id="maintBillNo" required placeholder="BILL-001"
-                   class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
-          </div>
-          <div class="sm:col-span-2">
-            <label class="block text-sm font-medium text-gray-600 mb-1">Description</label>
-            <textarea id="maintDescription" rows="2" placeholder="Optional notes"
-                      class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"></textarea>
           </div>
           <div class="sm:col-span-2 flex gap-3">
             <button type="submit"
