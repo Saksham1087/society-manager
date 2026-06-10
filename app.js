@@ -12,6 +12,10 @@
   const btnPrint = document.getElementById('btnPrintReceipt');
   const btnClose = document.getElementById('btnCloseReceipt');
   const btnViewReceipt = document.getElementById('btnMaintReceipt');
+  const maintCategory = document.getElementById('maintCategory');
+  const expCategory = document.getElementById('expCategory');
+  const maintOtherWrap = document.getElementById('maint-other-wrap');
+  const expOtherWrap = document.getElementById('exp-other-wrap');
 
   function switchTab(active) {
     const isMaint = active === 'maintenance';
@@ -32,6 +36,29 @@
   tabMain.addEventListener('click', function () { switchTab('maintenance'); });
   tabExp.addEventListener('click', function () { switchTab('expenses'); });
 
+  function setupOtherCategory(select, wrap, inputId) {
+    function toggleOther() {
+      if (select.value === 'Other') {
+        wrap.innerHTML = '<input type="text" id="' + inputId + '" required placeholder="Specify category" class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">';
+      } else {
+        wrap.innerHTML = '';
+      }
+    }
+    select.addEventListener('change', toggleOther);
+    toggleOther();
+  }
+
+  setupOtherCategory(maintCategory, maintOtherWrap, 'maintCategoryOther');
+  setupOtherCategory(expCategory, expOtherWrap, 'expCategoryOther');
+
+  function getCategoryValue(select, otherInputId) {
+    if (select.value === 'Other') {
+      var input = document.getElementById(otherInputId);
+      return input && input.value ? input.value : 'Other';
+    }
+    return select.value;
+  }
+
   function renderMaintenance() {
     const records = getMaintenanceRecords();
     if (!records.length) {
@@ -40,10 +67,10 @@
     }
     maintList.innerHTML = records.slice().reverse().map(function (r) {
       return '<div class="flex justify-between items-center bg-gray-50 rounded-lg p-3">' +
-        '<div><span class="font-semibold text-gray-800">' + esc(r.wing) + '-' + esc(r.unit) + '</span> ' +
-        '<span class="text-gray-600">' + esc(r.name) + '</span></div>' +
-        '<div class="text-right"><span class="font-bold text-blue-700">₹' + Number(r.amount).toFixed(2) + '</span>' +
-        '<br><span class="text-xs text-gray-400">' + esc(r.month) + ' ' + esc(r.year) + '</span></div></div>';
+        '<div><span class="font-semibold text-gray-800">' + esc(r.category) + '</span> ' +
+        '<span class="text-gray-600">' + esc(r.vendor) + '</span></div>' +
+        '<div class="text-right"><span class="font-bold text-blue-700">\u20B9' + Number(r.amount).toFixed(2) + '</span>' +
+        '<br><span class="text-xs text-gray-400">' + esc(r.date) + '</span></div></div>';
     }).join('');
   }
 
@@ -57,7 +84,7 @@
       return '<div class="flex justify-between items-center bg-gray-50 rounded-lg p-3">' +
         '<div><span class="font-semibold text-gray-800">' + esc(r.category) + '</span> ' +
         '<span class="text-gray-600">' + esc(r.vendor) + '</span></div>' +
-        '<div class="text-right"><span class="font-bold text-green-700">₹' + Number(r.amount).toFixed(2) + '</span>' +
+        '<div class="text-right"><span class="font-bold text-green-700">\u20B9' + Number(r.amount).toFixed(2) + '</span>' +
         '<br><span class="text-xs text-gray-400">' + esc(r.date) + '</span></div></div>';
     }).join('');
   }
@@ -71,25 +98,25 @@
   formMain.addEventListener('submit', function (e) {
     e.preventDefault();
     var record = {
-      wing: document.getElementById('maintWing').value,
-      unit: document.getElementById('maintUnit').value,
-      name: document.getElementById('maintName').value,
+      category: getCategoryValue(maintCategory, 'maintCategoryOther'),
       amount: parseFloat(document.getElementById('maintAmount').value),
-      month: document.getElementById('maintMonth').value,
-      year: document.getElementById('maintYear').value,
+      date: document.getElementById('maintDate').value,
+      vendor: document.getElementById('maintVendor').value,
       mode: document.getElementById('maintMode').value,
-      receipt: document.getElementById('maintReceipt').value,
+      billNo: document.getElementById('maintBillNo').value,
+      description: document.getElementById('maintDescription').value,
       timestamp: new Date().toISOString()
     };
     addMaintenanceRecord(record);
     formMain.reset();
+    maintOtherWrap.innerHTML = '';
     renderMaintenance();
   });
 
   formExp.addEventListener('submit', function (e) {
     e.preventDefault();
     var record = {
-      category: document.getElementById('expCategory').value,
+      category: getCategoryValue(expCategory, 'expCategoryOther'),
       amount: parseFloat(document.getElementById('expAmount').value),
       date: document.getElementById('expDate').value,
       vendor: document.getElementById('expVendor').value,
@@ -100,19 +127,19 @@
     };
     addExpenseRecord(record);
     formExp.reset();
+    expOtherWrap.innerHTML = '';
     renderExpenses();
   });
 
   function populateReceipt(record) {
     var rows = [
-      ['Wing', record.wing],
-      ['Unit', record.unit],
-      ['Owner', record.name],
-      ['Amount', '₹' + Number(record.amount).toFixed(2)],
-      ['Month', record.month],
-      ['Year', record.year],
+      ['Category', record.category],
+      ['Amount', '\u20B9' + Number(record.amount).toFixed(2)],
+      ['Date', record.date],
+      ['Vendor', record.vendor],
       ['Payment Mode', record.mode],
-      ['Receipt No.', record.receipt]
+      ['Bill / Ref No.', record.billNo],
+      ['Description', record.description]
     ];
     receiptBody.innerHTML = rows.map(function (pair) {
       return '<tr class="border-b border-gray-100"><td class="py-2 pr-4 font-medium text-gray-600">' +

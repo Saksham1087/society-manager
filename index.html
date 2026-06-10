@@ -40,22 +40,14 @@
         <h2 class="text-lg font-bold text-gray-800 border-b pb-2">Maintenance Entry</h2>
         <form id="formMaintenance" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-gray-600 mb-1">Wing</label>
-            <select id="maintWing" required
+            <label class="block text-sm font-medium text-gray-600 mb-1">Category</label>
+            <select id="maintCategory" required
                     class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
-              <option value="">Select Wing</option>
-              <option>A</option><option>B</option><option>C</option><option>D</option>
+              <option value="">Select Category</option>
+              <option>Maintenance Fee</option><option>Sinking Fund</option><option>Parking Fee</option>
+              <option>Late Fee</option><option>Other</option>
             </select>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-600 mb-1">Unit Number</label>
-            <input type="text" id="maintUnit" required placeholder="e.g. 101"
-                   class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-600 mb-1">Owner Name</label>
-            <input type="text" id="maintName" required placeholder="Full name"
-                   class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            <div id="maint-other-wrap" class="mt-2"></div>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-600 mb-1">Amount (₹)</label>
@@ -63,19 +55,13 @@
                    class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-600 mb-1">Month</label>
-            <select id="maintMonth" required
-                    class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
-              <option value="">Select Month</option>
-              <option>January</option><option>February</option><option>March</option>
-              <option>April</option><option>May</option><option>June</option>
-              <option>July</option><option>August</option><option>September</option>
-              <option>October</option><option>November</option><option>December</option>
-            </select>
+            <label class="block text-sm font-medium text-gray-600 mb-1">Date</label>
+            <input type="date" id="maintDate" required
+                   class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-600 mb-1">Year</label>
-            <input type="number" id="maintYear" required min="2020" max="2100" placeholder="2026"
+            <label class="block text-sm font-medium text-gray-600 mb-1">Payee / Vendor</label>
+            <input type="text" id="maintVendor" required placeholder="Vendor name"
                    class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
           </div>
           <div>
@@ -87,9 +73,14 @@
             </select>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-600 mb-1">Receipt No.</label>
-            <input type="text" id="maintReceipt" required placeholder="RCP-001"
+            <label class="block text-sm font-medium text-gray-600 mb-1">Bill / Ref No.</label>
+            <input type="text" id="maintBillNo" required placeholder="BILL-001"
                    class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          </div>
+          <div class="sm:col-span-2">
+            <label class="block text-sm font-medium text-gray-600 mb-1">Description</label>
+            <textarea id="maintDescription" rows="2" placeholder="Optional notes"
+                      class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"></textarea>
           </div>
           <div class="sm:col-span-2 flex gap-3">
             <button type="submit"
@@ -123,6 +114,7 @@
               <option>Security</option><option>Repairs</option><option>Gardening</option>
               <option>Other</option>
             </select>
+            <div id="exp-other-wrap" class="mt-2"></div>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-600 mb-1">Amount (₹)</label>
