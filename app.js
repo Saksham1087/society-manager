@@ -120,6 +120,7 @@
     var record = {
       member: document.getElementById('maintMember').value,
       flat: document.getElementById('maintFlat').value,
+      mobile: document.getElementById('maintMobile').value,
       category: getCategoryValue(maintCategory, 'maintCategoryOther'),
       amount: parseFloat(document.getElementById('maintAmount').value),
       date: document.getElementById('maintDate').value,
@@ -130,6 +131,15 @@
     formMain.reset();
     maintOtherWrap.innerHTML = '';
     renderMaintenance();
+
+    var msg = 'Maintenance Receipt\n'
+      + 'Member: ' + record.member + '\n'
+      + 'Flat: ' + record.flat + '\n'
+      + 'Amount: \u20B9' + record.amount.toFixed(2) + '\n'
+      + 'Date: ' + record.date + '\n'
+      + 'Category: ' + record.category + '\n'
+      + 'Mode: ' + record.mode;
+    window.location.href = 'sms:' + record.mobile + '?body=' + encodeURIComponent(msg);
   });
 
   formExp.addEventListener('submit', function (e) {
@@ -154,6 +164,7 @@
     var rows = [
       ['Member', record.member],
       ['Flat No', record.flat],
+      ['Mobile No', record.mobile],
       ['Category', record.category],
       ['Amount', '\u20B9' + Number(record.amount).toFixed(2)],
       ['Date', record.date],
