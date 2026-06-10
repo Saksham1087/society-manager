@@ -17,8 +17,9 @@
   const maintOtherWrap = document.getElementById('maint-other-wrap');
   const expOtherWrap = document.getElementById('exp-other-wrap');
 
-  const smsAnchor = document.getElementById('modal-sms-btn');
-  const waAnchor = document.getElementById('modal-wa-btn');
+  const modalSmsBtn = document.getElementById('modal-sms-btn');
+  const modalWaBtn = document.getElementById('modal-wa-btn');
+  var _currentId = null;
   var _currentRecord = null;
 
   const OTHER_CATEGORIES = [
@@ -114,13 +115,18 @@
     var records = getMaintenanceRecords();
     var record = records[index];
     if (!record) return;
+    _currentId = index;
     _currentRecord = record;
     populateReceipt(record);
 
-    var msg = buildMsg(record);
     var phone = record.mobile.replace(/\D/g, '');
-    smsAnchor.href = 'sms:' + phone + '?body=' + encodeURIComponent(msg);
-    waAnchor.href = 'https://wa.me/91' + phone + '?text=' + encodeURIComponent(msg);
+    var msg = buildMsg(record);
+    modalSmsBtn.onclick = function () {
+      window.location.href = 'sms:' + phone + '?body=' + encodeURIComponent(msg);
+    };
+    modalWaBtn.onclick = function () {
+      window.open('https://wa.me/91' + phone + '?text=' + encodeURIComponent(msg), '_blank');
+    };
 
     receiptModal.classList.remove('hidden');
     receiptModal.classList.add('flex');
