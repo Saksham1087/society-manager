@@ -17,6 +17,10 @@
   const maintOtherWrap = document.getElementById('maint-other-wrap');
   const expOtherWrap = document.getElementById('exp-other-wrap');
 
+  const smsAnchor = document.getElementById('modal-sms-btn');
+  const waAnchor = document.getElementById('modal-wa-btn');
+  var _currentRecord = null;
+
   const OTHER_CATEGORIES = [
     { select: maintCategory, wrap: maintOtherWrap, inputId: 'maintCategoryOther' },
     { select: expCategory, wrap: expOtherWrap, inputId: 'expCategoryOther' }
@@ -110,9 +114,26 @@
     var records = getMaintenanceRecords();
     var record = records[index];
     if (!record) return;
+    _currentRecord = record;
     populateReceipt(record);
+
+    var msg = buildMsg(record);
+    var phone = record.mobile.replace(/\D/g, '');
+    smsAnchor.href = 'sms:' + phone + '?body=' + encodeURIComponent(msg);
+    waAnchor.href = 'https://wa.me/91' + phone + '?text=' + encodeURIComponent(msg);
+
     receiptModal.classList.remove('hidden');
     receiptModal.classList.add('flex');
+  }
+
+  function buildMsg(record) {
+    return 'Maintenance Receipt\n'
+      + 'Member: ' + record.member + '\n'
+      + 'Flat: ' + record.flat + '\n'
+      + 'Amount: \u20B9' + Number(record.amount).toFixed(2) + '\n'
+      + 'Date: ' + record.date + '\n'
+      + 'Category: ' + record.category + '\n'
+      + 'Mode: ' + record.mode;
   }
 
   formMain.addEventListener('submit', function (e) {
@@ -132,13 +153,8 @@
     maintOtherWrap.innerHTML = '';
     renderMaintenance();
 
-    var msg = 'Maintenance Receipt\n'
-      + 'Member: ' + record.member + '\n'
-      + 'Flat: ' + record.flat + '\n'
-      + 'Amount: \u20B9' + record.amount.toFixed(2) + '\n'
-      + 'Date: ' + record.date + '\n'
-      + 'Category: ' + record.category + '\n'
-      + 'Mode: ' + record.mode;
+    _currentRecord = record;
+    var msg = buildMsg(record);
     window.location.href = 'sms:' + record.mobile + '?body=' + encodeURIComponent(msg);
   });
 
