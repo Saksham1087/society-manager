@@ -27,6 +27,17 @@
     { select: expCategory, wrap: expOtherWrap, inputId: 'expCategoryOther' }
   ];
 
+  function updateAnalytics() {
+    var maintRecords = getMaintenanceRecords();
+    var expRecords = getExpenseRecords();
+    var totalColl = 0, totalExp = 0;
+    for (var i = 0; i < maintRecords.length; i++) totalColl += Number(maintRecords[i].amount) || 0;
+    for (var i = 0; i < expRecords.length; i++) totalExp += Number(expRecords[i].amount) || 0;
+    document.getElementById('totalCollections').textContent = totalColl.toFixed(2);
+    document.getElementById('totalExpenses').textContent = totalExp.toFixed(2);
+    document.getElementById('netBalance').textContent = (totalColl - totalExp).toFixed(2);
+  }
+
   function switchTab(active) {
     const isMaint = active === 'maintenance';
     tabMain.classList.toggle('bg-blue-700', isMaint);
@@ -72,10 +83,12 @@
     return div.innerHTML;
   }
 
-  function renderMaintenance() {
+  function renderMaintenanceList() {
     var records = getMaintenanceRecords();
+    var query = (document.getElementById('maint-search').value || '').toLowerCase().trim();
+    if (query) records = records.filter(function (r) { return r.flat.toLowerCase().indexOf(query) !== -1; });
     if (!records.length) {
-      maintList.innerHTML = '<p class="text-gray-400">No records yet.</p>';
+      maintList.innerHTML = '<p class="text-gray-400">' + (query ? 'No matching records.' : 'No records yet.') + '</p>';
       return;
     }
     maintList.innerHTML = records.slice().reverse().map(function (r, idx) {
@@ -90,7 +103,7 @@
     [].slice.call(maintList.children).forEach(function (el) {
       if (el.dataset.index !== undefined) {
         el.addEventListener('click', function () {
-          openReceipt(parseInt(el.dataset.index));
+          launchReceipt(parseInt(el.dataset.index));
         });
       }
     });
@@ -111,7 +124,7 @@
     }).join('');
   }
 
-  function openReceipt(index) {
+  function launchReceipt(index) {
     var records = getMaintenanceRecords();
     var record = records[index];
     if (!record) return;
@@ -154,14 +167,19 @@
       mode: document.getElementById('maintMode').value,
       timestamp: new Date().toISOString()
     };
-    addMaintenanceRecord(record);
+    var records = addMaintenanceRecord(record);
     formMain.reset();
     maintOtherWrap.innerHTML = '';
-    renderMaintenance();
+    renderMaintenanceList();
+    updateAnalytics();
 
-    _currentRecord = record;
+    var newMaint = { id: records.length - 1 };
+    launchReceipt(newMaint.id);
+
+    var phone = record.mobile.replace(/\D/g, '');
     var msg = buildMsg(record);
-    window.location.href = 'sms:' + record.mobile + '?body=' + encodeURIComponent(msg);
+    var waUri = 'https://api.whatsapp.com/send?phone=91' + phone + '&text=' + encodeURIComponent(msg);
+    window.open(waUri, '_blank');
   });
 
   formExp.addEventListener('submit', function (e) {
@@ -180,6 +198,7 @@
     formExp.reset();
     expOtherWrap.innerHTML = '';
     renderExpenses();
+    updateAnalytics();
   });
 
   function populateReceipt(record) {
@@ -201,7 +220,7 @@
   btnViewReceipt.addEventListener('click', function () {
     var records = getMaintenanceRecords();
     if (!records.length) { alert('No maintenance records available.'); return; }
-    openReceipt(records.length - 1);
+    launchReceipt(records.length - 1);
   });
 
   btnClose.addEventListener('click', function () {
@@ -220,7 +239,50 @@
     }
   });
 
+  document.getElementById('maint-search').addEventListener('input', renderMaintenanceList);
+
+  document.getElementById('btnExportBackup').addEventListener('click', function () {
+    var data = {
+      sms_maintenance: getMaintenanceRecords(),
+      sms_expenses: getExpenseRecords()
+    };
+    var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'society_ledger_backup.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  document.getElementById('btnImportBackup').addEventListener('click', function () {
+    document.getElementById('fileImportBackup').click();
+  });
+
+  document.getElementById('fileImportBackup').addEventListener('change', function () {
+    var file = this.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      try {
+        var data = JSON.parse(e.target.result);
+        if (data.sms_maintenance) setRecords(STORAGE_KEYS.MAINTENANCE, data.sms_maintenance);
+        if (data.sms_expenses) setRecords(STORAGE_KEYS.EXPENSES, data.sms_expenses);
+        renderMaintenanceList();
+        renderExpenses();
+        updateAnalytics();
+      } catch (err) {
+        alert('Invalid backup file.');
+      }
+    };
+    reader.readAsText(file);
+    this.value = '';
+  });
+
   switchTab('maintenance');
-  renderMaintenance();
+  renderMaintenanceList();
   renderExpenses();
+  updateAnalytics();
 })();

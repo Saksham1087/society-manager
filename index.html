@@ -21,9 +21,18 @@
 <body class="bg-gray-100 min-h-screen font-sans antialiased">
 
   <header class="bg-blue-700 text-white px-4 py-4 shadow-md no-print">
-    <div class="max-w-3xl mx-auto flex items-center justify-between">
+    <div class="max-w-3xl mx-auto flex items-center justify-between gap-2">
       <h1 class="text-xl font-bold tracking-tight">Society Management</h1>
-      <span class="text-blue-200 text-sm">SMS</span>
+      <div class="flex items-center gap-2">
+        <span class="text-blue-200 text-sm hidden sm:inline">SMS</span>
+        <button id="btnExportBackup" class="text-xs bg-blue-600 hover:bg-blue-500 px-2 py-1 rounded transition">
+          Export Backup
+        </button>
+        <button id="btnImportBackup" class="text-xs bg-blue-600 hover:bg-blue-500 px-2 py-1 rounded transition">
+          Import Backup
+        </button>
+        <input type="file" id="fileImportBackup" accept=".json" class="hidden">
+      </div>
     </div>
   </header>
 
@@ -34,6 +43,21 @@
       <button id="tabExpenses" class="flex-1 py-3 text-sm font-semibold text-center transition"
               role="tab" aria-selected="false">Expenses</button>
     </nav>
+
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6 no-print">
+      <div class="bg-blue-50 rounded-xl shadow-sm p-4 border border-blue-200">
+        <p class="text-xs font-medium text-blue-600 uppercase tracking-wide">Total Collections</p>
+        <p class="text-2xl font-bold text-blue-800 mt-1">&#x20B9;<span id="totalCollections">0</span></p>
+      </div>
+      <div class="bg-amber-50 rounded-xl shadow-sm p-4 border border-amber-200">
+        <p class="text-xs font-medium text-amber-600 uppercase tracking-wide">Total Expenses</p>
+        <p class="text-2xl font-bold text-amber-800 mt-1">&#x20B9;<span id="totalExpenses">0</span></p>
+      </div>
+      <div class="bg-emerald-50 rounded-xl shadow-sm p-4 border border-emerald-200">
+        <p class="text-xs font-medium text-emerald-600 uppercase tracking-wide">Net Society Balance</p>
+        <p class="text-2xl font-bold text-emerald-800 mt-1">&#x20B9;<span id="netBalance">0</span></p>
+      </div>
+    </div>
 
     <section id="moduleMaintenance" class="mt-6" role="tabpanel">
       <div class="bg-white rounded-xl shadow-sm p-5 space-y-4">
@@ -96,6 +120,8 @@
       </div>
 
       <div class="mt-6 bg-white rounded-xl shadow-sm p-5">
+        <input type="text" id="maint-search" placeholder="🔍 Search by Flat No..."
+               class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm mb-3 focus:ring-2 focus:ring-blue-500 focus:outline-none">
         <h3 class="text-md font-bold text-gray-800 mb-3">Recent Maintenance</h3>
         <div id="maintList" class="space-y-2 text-sm text-gray-600">No records yet.</div>
       </div>
