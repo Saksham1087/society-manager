@@ -48,6 +48,8 @@
               role="tab" aria-selected="false">Expenses</button>
       <button id="tabPending" class="flex-1 py-3 text-sm font-semibold text-center transition"
               role="tab" aria-selected="false">Defaulters</button>
+      <button id="tabMembers" class="flex-1 py-3 text-sm font-semibold text-center transition"
+              role="tab" aria-selected="false">👥 Members</button>
     </nav>
 
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6 no-print">
@@ -88,17 +90,19 @@
         <form id="formMaintenance" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Member Name</label>
-            <input type="text" id="maintMember" required placeholder="Full name"
+            <input type="text" id="maintMember" required readonly placeholder="Auto-filled"
                    class="w-full rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Flat No</label>
-            <input type="text" id="maintFlat" required placeholder="e.g. A-101"
-                   class="w-full rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            <select id="maintFlat" required
+                    class="w-full rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+              <option value="">Select Flat</option>
+            </select>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Mobile No</label>
-            <input type="tel" id="maintMobile" required pattern="[0-9]{10}" maxlength="10" placeholder="10-digit number"
+            <input type="tel" id="maintMobile" required readonly placeholder="Auto-filled"
                    class="w-full rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
           </div>
           <div>
@@ -287,6 +291,40 @@
           <span id="totalPending" class="text-sm font-bold text-red-600 dark:text-red-400">Total: ₹0</span>
         </div>
         <div id="list-pending" class="space-y-2 text-sm text-gray-600 dark:text-gray-300">No records yet.</div>
+      </div>
+    </section>
+
+    <section id="moduleMembers" class="mt-6 hidden" role="tabpanel">
+      <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-5 space-y-4">
+        <h2 class="text-lg font-bold text-gray-800 dark:text-white border-b dark:border-slate-700 pb-2">👥 Member Directory</h2>
+        <form id="formMembers" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Member Name</label>
+            <input type="text" id="memName" required placeholder="Full name"
+                   class="w-full rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Flat No</label>
+            <input type="text" id="memFlat" required placeholder="e.g. A-101"
+                   class="w-full rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Mobile No</label>
+            <input type="tel" id="memMobile" required pattern="[0-9]{10}" maxlength="10" placeholder="10-digit number"
+                   class="w-full rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          </div>
+          <div class="sm:col-span-3">
+            <button type="submit"
+                    class="no-print w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2.5 rounded-lg transition text-sm">
+              Add Member
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div class="mt-6 bg-white dark:bg-slate-800 rounded-xl shadow-sm p-5">
+        <h3 class="text-md font-bold text-gray-800 dark:text-white mb-3">Registered Residents</h3>
+        <div id="list-members" class="space-y-2 text-sm text-gray-600 dark:text-gray-300">No members yet.</div>
       </div>
     </section>
   </main>

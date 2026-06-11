@@ -23,6 +23,11 @@
   const pendCategory = document.getElementById('pendCategory');
   const pendOtherWrap = document.getElementById('pend-other-wrap');
 
+  const tabMembers = document.getElementById('tabMembers');
+  const moduleMembers = document.getElementById('moduleMembers');
+  const formMembers = document.getElementById('formMembers');
+  const maintFlat = document.getElementById('maintFlat');
+
   const modalSmsBtn = document.getElementById('modal-sms-btn');
   const modalWaBtn = document.getElementById('modal-wa-btn');
   var _currentId = null;
@@ -64,6 +69,7 @@
     var isMaint = active === 'maintenance';
     var isExp = active === 'expenses';
     var isPend = active === 'pending';
+    var isMem = active === 'members';
     tabMain.classList.toggle('bg-blue-700', isMaint);
     tabMain.classList.toggle('text-white', isMaint);
     tabMain.classList.toggle('bg-white', !isMaint);
@@ -79,14 +85,21 @@
     tabPend.classList.toggle('bg-white', !isPend);
     tabPend.classList.toggle('text-gray-700', !isPend);
     tabPend.setAttribute('aria-selected', isPend);
+    tabMembers.classList.toggle('bg-purple-600', isMem);
+    tabMembers.classList.toggle('text-white', isMem);
+    tabMembers.classList.toggle('bg-white', !isMem);
+    tabMembers.classList.toggle('text-gray-700', !isMem);
+    tabMembers.setAttribute('aria-selected', isMem);
     moduleMain.classList.toggle('hidden', !isMaint);
     moduleExp.classList.toggle('hidden', !isExp);
     modulePend.classList.toggle('hidden', !isPend);
+    moduleMembers.classList.toggle('hidden', !isMem);
   }
 
   tabMain.addEventListener('click', function () { switchTab('maintenance'); });
   tabExp.addEventListener('click', function () { switchTab('expenses'); });
   tabPend.addEventListener('click', function () { switchTab('pending'); });
+  tabMembers.addEventListener('click', function () { switchTab('members'); });
 
   function setupOtherCategory(select, wrap, inputId) {
     function toggleOther() {
@@ -218,6 +231,40 @@
     });
   }
 
+  function populateMemberDropdown() {
+    var members = getMemberRecords();
+    maintFlat.innerHTML = '<option value="">Select Flat</option>';
+    members.forEach(function (m) {
+      var opt = document.createElement('option');
+      opt.value = m.flat;
+      opt.textContent = m.flat;
+      maintFlat.appendChild(opt);
+    });
+  }
+
+  function renderMemberList() {
+    var members = getMemberRecords();
+    var el = document.getElementById('list-members');
+    if (!members.length) { el.innerHTML = '<p class="text-gray-400">No members yet.</p>'; return; }
+    el.innerHTML = members.map(function (m, i) {
+      return '<div class="flex justify-between items-center bg-gray-50 dark:bg-slate-700/50 rounded-lg p-3">' +
+        '<div><span class="font-semibold text-gray-800 dark:text-white">' + esc(m.member) + '</span> ' +
+        '<span class="text-gray-600 dark:text-gray-300">' + esc(m.flat) + '</span>' +
+        '<br><span class="text-xs text-gray-400 dark:text-gray-400">' + esc(m.mobile) + '</span></div>' +
+        '<button class="btn-remove-member text-xs bg-red-100 dark:bg-red-900/40 hover:bg-red-200 dark:hover:bg-red-800/50 text-red-700 dark:text-red-300 px-2 py-1 rounded transition font-medium" data-index="' + i + '">❌ Remove</button></div>';
+    }).join('');
+    [].slice.call(document.querySelectorAll('.btn-remove-member')).forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var idx = parseInt(this.dataset.index);
+        if (confirm('Remove this member?')) {
+          removeMemberRecord(idx);
+          populateMemberDropdown();
+          renderMemberList();
+        }
+      });
+    });
+  }
+
   function launchReceipt(index) {
     var records = getMaintenanceRecords();
     var record = records[index];
@@ -248,6 +295,16 @@
       + 'Category: ' + record.category + '\n'
       + 'Mode: ' + record.mode;
   }
+
+  maintFlat.addEventListener('change', function () {
+    var members = getMemberRecords();
+    var selected = null;
+    for (var i = 0; i < members.length; i++) {
+      if (members[i].flat === this.value) { selected = members[i]; break; }
+    }
+    document.getElementById('maintMember').value = selected ? selected.member : '';
+    document.getElementById('maintMobile').value = selected ? selected.mobile : '';
+  });
 
   formMain.addEventListener('submit', function (e) {
     e.preventDefault();
@@ -312,6 +369,21 @@
     renderPendingList();
   });
 
+  formMembers.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var record = {
+      member: document.getElementById('memName').value.trim(),
+      flat: document.getElementById('memFlat').value.trim(),
+      mobile: document.getElementById('memMobile').value.trim()
+    };
+    if (!record.member || !record.flat || !record.mobile) { alert('All fields required.'); return; }
+    var added = addMemberRecord(record);
+    if (!added) { alert('Flat ' + record.flat + ' is already registered.'); return; }
+    formMembers.reset();
+    populateMemberDropdown();
+    renderMemberList();
+  });
+
   function populateReceipt(record) {
     document.getElementById('rcpt-name').textContent = record.member;
     document.getElementById('rcpt-flat').textContent = record.flat;
@@ -357,7 +429,8 @@
     var data = {
       sms_maintenance: getMaintenanceRecords(),
       sms_expenses: getExpenseRecords(),
-      sms_pending: getPendingRecords()
+      sms_pending: getPendingRecords(),
+      sms_members: getMemberRecords()
     };
     var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     var url = URL.createObjectURL(blob);
@@ -384,9 +457,12 @@
         if (data.sms_maintenance) setRecords(STORAGE_KEYS.MAINTENANCE, data.sms_maintenance);
         if (data.sms_expenses) setRecords(STORAGE_KEYS.EXPENSES, data.sms_expenses);
         if (data.sms_pending) setRecords(STORAGE_KEYS.PENDING, data.sms_pending);
+        if (data.sms_members) setRecords(STORAGE_KEYS.MEMBERS, data.sms_members);
         renderMaintenanceList();
         renderExpenses();
         renderPendingList();
+        populateMemberDropdown();
+        renderMemberList();
         updateAnalytics();
       } catch (err) {
         alert('Invalid backup file.');
@@ -425,7 +501,8 @@
     var data = {
       sms_maintenance: getMaintenanceRecords(),
       sms_expenses: getExpenseRecords(),
-      sms_pending: getPendingRecords()
+      sms_pending: getPendingRecords(),
+      sms_members: getMemberRecords()
     };
     var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     var url = URL.createObjectURL(blob);
@@ -479,6 +556,8 @@
   document.getElementById('btnExpFilterToday').addEventListener('click', function () { expFilter = 'today'; setActiveFilter('exp-filter', 'btnExpFilterToday'); renderExpenses(); });
   document.getElementById('btnExpFilterMonth').addEventListener('click', function () { expFilter = 'month'; setActiveFilter('exp-filter', 'btnExpFilterMonth'); renderExpenses(); });
 
+  populateMemberDropdown();
+  renderMemberList();
   switchTab('maintenance');
   renderMaintenanceList();
   renderExpenses();
