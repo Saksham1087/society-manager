@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Society Management System</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { darkMode: 'class' }
+  </script>
   <style>
     @media print {
       body * { visibility: hidden; }
@@ -18,13 +21,14 @@
     }
   </style>
 </head>
-<body class="bg-gray-100 min-h-screen font-sans antialiased">
+<body class="bg-gray-100 dark:bg-slate-900 min-h-screen font-sans antialiased">
 
   <header class="bg-blue-700 text-white px-4 py-4 shadow-md no-print">
     <div class="max-w-3xl mx-auto flex items-center justify-between gap-2">
       <h1 class="text-xl font-bold tracking-tight">Society Management</h1>
       <div class="flex items-center gap-2">
         <span class="text-blue-200 text-sm hidden sm:inline">SMS</span>
+        <button id="btnThemeToggle" class="text-lg leading-none px-1 py-1 rounded hover:bg-blue-600 transition" title="Toggle theme">🌙</button>
         <button id="btnExportBackup" class="text-xs bg-blue-600 hover:bg-blue-500 px-2 py-1 rounded transition">
           Export Backup
         </button>
@@ -42,46 +46,65 @@
               role="tab" aria-selected="true">Maintenance</button>
       <button id="tabExpenses" class="flex-1 py-3 text-sm font-semibold text-center transition"
               role="tab" aria-selected="false">Expenses</button>
+      <button id="tabPending" class="flex-1 py-3 text-sm font-semibold text-center transition"
+              role="tab" aria-selected="false">Defaulters</button>
     </nav>
 
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6 no-print">
-      <div class="bg-blue-50 rounded-xl shadow-sm p-4 border border-blue-200">
-        <p class="text-xs font-medium text-blue-600 uppercase tracking-wide">Total Collections</p>
-        <p class="text-2xl font-bold text-blue-800 mt-1">&#x20B9;<span id="totalCollections">0</span></p>
+      <div class="bg-blue-50 dark:bg-blue-900/30 rounded-xl shadow-sm p-4 border border-blue-200 dark:border-blue-800">
+        <p class="text-xs font-medium text-blue-600 dark:text-blue-300 uppercase tracking-wide">Total Collections</p>
+        <p class="text-2xl font-bold text-blue-800 dark:text-blue-200 mt-1">&#x20B9;<span id="totalCollections">0</span></p>
       </div>
-      <div class="bg-amber-50 rounded-xl shadow-sm p-4 border border-amber-200">
-        <p class="text-xs font-medium text-amber-600 uppercase tracking-wide">Total Expenses</p>
-        <p class="text-2xl font-bold text-amber-800 mt-1">&#x20B9;<span id="totalExpenses">0</span></p>
+      <div class="bg-amber-50 dark:bg-amber-900/30 rounded-xl shadow-sm p-4 border border-amber-200 dark:border-amber-800">
+        <p class="text-xs font-medium text-amber-600 dark:text-amber-300 uppercase tracking-wide">Total Expenses</p>
+        <p class="text-2xl font-bold text-amber-800 dark:text-amber-200 mt-1">&#x20B9;<span id="totalExpenses">0</span></p>
       </div>
-      <div class="bg-emerald-50 rounded-xl shadow-sm p-4 border border-emerald-200">
-        <p class="text-xs font-medium text-emerald-600 uppercase tracking-wide">Net Society Balance</p>
-        <p class="text-2xl font-bold text-emerald-800 mt-1">&#x20B9;<span id="netBalance">0</span></p>
+      <div class="bg-emerald-50 dark:bg-emerald-900/30 rounded-xl shadow-sm p-4 border border-emerald-200 dark:border-emerald-800">
+        <p class="text-xs font-medium text-emerald-600 dark:text-emerald-300 uppercase tracking-wide">Net Society Balance</p>
+        <p class="text-2xl font-bold text-emerald-800 dark:text-emerald-200 mt-1">&#x20B9;<span id="netBalance">0</span></p>
+      </div>
+    </div>
+
+    <div class="mt-2 no-print">
+      <button id="btnToggleSettings" class="text-xs text-gray-400 hover:text-gray-600 transition px-1 py-1">
+        ⚙️ Settings
+      </button>
+      <div id="settingsPanel" class="hidden mt-2 bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 border border-gray-200 dark:border-slate-700">
+        <div class="flex items-center gap-3 flex-wrap">
+          <label class="text-sm font-medium text-gray-600 dark:text-gray-300">Opening Balance (₹)</label>
+          <input type="number" id="previous-closing-balance" step="0.01" placeholder="0.00"
+                 class="w-40 rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          <button id="btnSaveOpeningBalance"
+                  class="text-sm bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg transition">
+            Save Balance
+          </button>
+        </div>
       </div>
     </div>
 
     <section id="moduleMaintenance" class="mt-6" role="tabpanel">
-      <div class="bg-white rounded-xl shadow-sm p-5 space-y-4">
-        <h2 class="text-lg font-bold text-gray-800 border-b pb-2">Maintenance Entry</h2>
+      <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-5 space-y-4">
+        <h2 class="text-lg font-bold text-gray-800 dark:text-white border-b dark:border-slate-700 pb-2">Maintenance Entry</h2>
         <form id="formMaintenance" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-gray-600 mb-1">Member Name</label>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Member Name</label>
             <input type="text" id="maintMember" required placeholder="Full name"
-                   class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                   class="w-full rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-600 mb-1">Flat No</label>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Flat No</label>
             <input type="text" id="maintFlat" required placeholder="e.g. A-101"
-                   class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                   class="w-full rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-600 mb-1">Mobile No</label>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Mobile No</label>
             <input type="tel" id="maintMobile" required pattern="[0-9]{10}" maxlength="10" placeholder="10-digit number"
-                   class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                   class="w-full rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-600 mb-1">Maintenance Category</label>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Maintenance Category</label>
             <select id="maintCategory" required
-                    class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    class="w-full rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
               <option value="">Select Category</option>
               <option>Maintenance Fee</option><option>Sinking Fund</option><option>Parking Fee</option>
               <option>Late Fee</option><option>Other</option>
@@ -89,19 +112,19 @@
             <div id="maint-other-wrap" class="mt-2"></div>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-600 mb-1">Amount (₹)</label>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Amount (₹)</label>
             <input type="number" id="maintAmount" required min="1" step="0.01" placeholder="0.00"
-                   class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                   class="w-full rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-600 mb-1">Date</label>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Date</label>
             <input type="date" id="maintDate" required
-                   class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                   class="w-full rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-600 mb-1">Payment Mode</label>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Payment Mode</label>
             <select id="maintMode" required
-                    class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    class="w-full rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
               <option value="">Select Mode</option>
               <option>Cash</option><option>Cheque</option><option>UPI</option><option>Bank Transfer</option>
             </select>
@@ -112,29 +135,36 @@
               Save Maintenance
             </button>
             <button type="button" id="btnMaintReceipt"
-                    class="no-print flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2.5 rounded-lg transition text-sm">
+                    class="no-print flex-1 bg-gray-200 dark:bg-slate-600 hover:bg-gray-300 dark:hover:bg-slate-500 text-gray-800 dark:text-white font-semibold py-2.5 rounded-lg transition text-sm">
               View Receipt
             </button>
           </div>
         </form>
       </div>
 
-      <div class="mt-6 bg-white rounded-xl shadow-sm p-5">
+      <div class="mt-6 bg-white dark:bg-slate-800 rounded-xl shadow-sm p-5">
         <input type="text" id="maint-search" placeholder="🔍 Search by Flat No..."
-               class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm mb-3 focus:ring-2 focus:ring-blue-500 focus:outline-none">
-        <h3 class="text-md font-bold text-gray-800 mb-3">Recent Maintenance</h3>
-        <div id="maintList" class="space-y-2 text-sm text-gray-600">No records yet.</div>
+               class="w-full rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white border px-3 py-2 text-sm mb-3 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        <div class="flex items-center gap-2 mb-3">
+          <h3 class="text-md font-bold text-gray-800 dark:text-white">Recent Maintenance</h3>
+          <div class="ml-auto flex gap-1">
+            <button id="btnMaintFilterAll" class="maint-filter text-xs px-2 py-1 rounded bg-blue-700 text-white font-medium transition">Show All</button>
+            <button id="btnMaintFilterToday" class="maint-filter text-xs px-2 py-1 rounded bg-gray-200 dark:bg-slate-600 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-slate-500 transition">Today</button>
+            <button id="btnMaintFilterMonth" class="maint-filter text-xs px-2 py-1 rounded bg-gray-200 dark:bg-slate-600 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-slate-500 transition">This Month</button>
+          </div>
+        </div>
+        <div id="maintList" class="space-y-2 text-sm text-gray-600 dark:text-gray-300">No records yet.</div>
       </div>
     </section>
 
     <section id="moduleExpenses" class="mt-6 hidden" role="tabpanel">
-      <div class="bg-white rounded-xl shadow-sm p-5 space-y-4">
-        <h2 class="text-lg font-bold text-gray-800 border-b pb-2">Expense Entry</h2>
+      <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-5 space-y-4">
+        <h2 class="text-lg font-bold text-gray-800 dark:text-white border-b dark:border-slate-700 pb-2">Expense Entry</h2>
         <form id="formExpenses" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-gray-600 mb-1">Category</label>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Category</label>
             <select id="expCategory" required
-                    class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    class="w-full rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
               <option value="">Select Category</option>
               <option>Electricity</option><option>Water</option><option>Cleaning</option>
               <option>Security</option><option>Repairs</option><option>Gardening</option>
@@ -143,37 +173,37 @@
             <div id="exp-other-wrap" class="mt-2"></div>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-600 mb-1">Amount (₹)</label>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Amount (₹)</label>
             <input type="number" id="expAmount" required min="1" step="0.01" placeholder="0.00"
-                   class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                   class="w-full rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-600 mb-1">Date</label>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Date</label>
             <input type="date" id="expDate" required
-                   class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                   class="w-full rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-600 mb-1">Payee / Vendor</label>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Payee / Vendor</label>
             <input type="text" id="expVendor" required placeholder="Vendor name"
-                   class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                   class="w-full rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-600 mb-1">Payment Mode</label>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Payment Mode</label>
             <select id="expMode" required
-                    class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    class="w-full rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
               <option value="">Select Mode</option>
               <option>Cash</option><option>Cheque</option><option>UPI</option><option>Bank Transfer</option>
             </select>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-600 mb-1">Bill / Ref No.</label>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Bill / Ref No.</label>
             <input type="text" id="expBillNo" required placeholder="BILL-001"
-                   class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                   class="w-full rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
           </div>
           <div class="sm:col-span-2">
-            <label class="block text-sm font-medium text-gray-600 mb-1">Description</label>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Description</label>
             <textarea id="expDescription" rows="2" placeholder="Optional notes"
-                      class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"></textarea>
+                      class="w-full rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"></textarea>
           </div>
           <div class="sm:col-span-2">
             <button type="submit"
@@ -184,31 +214,95 @@
         </form>
       </div>
 
-      <div class="mt-6 bg-white rounded-xl shadow-sm p-5">
-        <h3 class="text-md font-bold text-gray-800 mb-3">Recent Expenses</h3>
-        <div id="expenseList" class="space-y-2 text-sm text-gray-600">No records yet.</div>
+      <div class="mt-6 bg-white dark:bg-slate-800 rounded-xl shadow-sm p-5">
+        <div class="flex items-center gap-2 mb-3">
+          <h3 class="text-md font-bold text-gray-800 dark:text-white">Recent Expenses</h3>
+          <div class="ml-auto flex gap-1">
+            <button id="btnExpFilterAll" class="exp-filter text-xs px-2 py-1 rounded bg-green-700 text-white font-medium transition">Show All</button>
+            <button id="btnExpFilterToday" class="exp-filter text-xs px-2 py-1 rounded bg-gray-200 dark:bg-slate-600 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-slate-500 transition">Today</button>
+            <button id="btnExpFilterMonth" class="exp-filter text-xs px-2 py-1 rounded bg-gray-200 dark:bg-slate-600 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-slate-500 transition">This Month</button>
+          </div>
+        </div>
+        <div id="expenseList" class="space-y-2 text-sm text-gray-600 dark:text-gray-300">No records yet.</div>
+      </div>
+    </section>
+
+    <section id="modulePending" class="mt-6 hidden" role="tabpanel">
+      <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-5 space-y-4">
+        <h2 class="text-lg font-bold text-gray-800 dark:text-white border-b dark:border-slate-700 pb-2">Defaulters / Pending Dues</h2>
+        <form id="formPending" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Flat No</label>
+            <input type="text" id="pendFlat" required placeholder="e.g. A-101"
+                   class="w-full rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Member Name</label>
+            <input type="text" id="pendMember" required placeholder="Full name"
+                   class="w-full rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Mobile No</label>
+            <input type="tel" id="pendMobile" required pattern="[0-9]{10}" maxlength="10" placeholder="10-digit number"
+                   class="w-full rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Dues Category</label>
+            <select id="pendCategory" required
+                    class="w-full rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+              <option value="">Select Category</option>
+              <option>Maintenance Fee</option><option>Sinking Fund</option><option>Parking Fee</option>
+              <option>Late Fee</option><option>Other</option>
+            </select>
+            <div id="pend-other-wrap" class="mt-2"></div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Amount (₹)</label>
+            <input type="number" id="pendAmount" required min="1" step="0.01" placeholder="0.00"
+                   class="w-full rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Due Date</label>
+            <input type="date" id="pendDate" required
+                   class="w-full rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          </div>
+          <div class="sm:col-span-2">
+            <button type="submit"
+                    class="no-print w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2.5 rounded-lg transition text-sm">
+              Log Pending Due
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div class="mt-6 bg-white dark:bg-slate-800 rounded-xl shadow-sm p-5">
+        <div class="flex justify-between items-center mb-3">
+          <h3 class="text-md font-bold text-gray-800 dark:text-white">Pending Dues</h3>
+          <span id="totalPending" class="text-sm font-bold text-red-600 dark:text-red-400">Total: ₹0</span>
+        </div>
+        <div id="list-pending" class="space-y-2 text-sm text-gray-600 dark:text-gray-300">No records yet.</div>
       </div>
     </section>
   </main>
 
   <footer class="mt-8 pb-6 no-print">
     <div class="max-w-3xl mx-auto px-4">
-      <div class="bg-white rounded-xl shadow-sm p-3 border border-gray-200">
+      <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3 border border-gray-200 dark:border-slate-700">
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
           <button id="btnExportCsv"
-                  class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-2 rounded transition font-medium">
+                  class="text-xs bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-200 px-2 py-2 rounded transition font-medium">
             📥 Export Excel/CSV
           </button>
           <button id="btnBackupJson"
-                  class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-2 rounded transition font-medium">
+                  class="text-xs bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-200 px-2 py-2 rounded transition font-medium">
             💾 Backup Database (JSON)
           </button>
           <button id="btnRestoreBackup"
-                  class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-2 rounded transition font-medium">
+                  class="text-xs bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-200 px-2 py-2 rounded transition font-medium">
             📂 Restore Backup
           </button>
           <button id="btnResetCache"
-                  class="text-xs bg-red-100 hover:bg-red-200 text-red-700 px-2 py-2 rounded transition font-medium">
+                  class="text-xs bg-red-100 dark:bg-red-900/40 hover:bg-red-200 dark:hover:bg-red-800/50 text-red-700 dark:text-red-300 px-2 py-2 rounded transition font-medium">
             ⚠️ Reset App Cache
           </button>
         </div>
@@ -216,11 +310,11 @@
     </div>
   </footer>
 
-  <div id="receiptModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40">
-    <div class="bg-white rounded-xl shadow-xl max-w-sm w-full mx-4 p-6 print:shadow-none print:border">
-      <div class="text-center border-b pb-3 mb-4">
-        <h2 class="text-lg font-bold text-gray-800">Payment Receipt</h2>
-        <p class="text-xs text-gray-500">Society Management System</p>
+  <div id="receiptModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 dark:bg-black/60">
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-sm w-full mx-4 p-6 print:shadow-none print:border">
+      <div class="text-center border-b dark:border-slate-700 pb-3 mb-4">
+        <h2 class="text-lg font-bold text-gray-800 dark:text-white">Payment Receipt</h2>
+        <p class="text-xs text-gray-500 dark:text-gray-400">Society Management System</p>
       </div>
       <table class="w-full text-sm" id="receiptBody">
         <tbody></tbody>

@@ -17,15 +17,36 @@
   const maintOtherWrap = document.getElementById('maint-other-wrap');
   const expOtherWrap = document.getElementById('exp-other-wrap');
 
+  const tabPend = document.getElementById('tabPending');
+  const modulePend = document.getElementById('modulePending');
+  const formPend = document.getElementById('formPending');
+  const pendCategory = document.getElementById('pendCategory');
+  const pendOtherWrap = document.getElementById('pend-other-wrap');
+
   const modalSmsBtn = document.getElementById('modal-sms-btn');
   const modalWaBtn = document.getElementById('modal-wa-btn');
   var _currentId = null;
   var _currentRecord = null;
 
+  var themeToggle = document.getElementById('btnThemeToggle');
+  var htmlEl = document.documentElement;
+  function setTheme(theme) {
+    if (theme === 'dark') { htmlEl.classList.add('dark'); themeToggle.textContent = '\u2600\uFE0F'; }
+    else { htmlEl.classList.remove('dark'); themeToggle.textContent = '\uD83C\uDF19'; }
+    localStorage.setItem('sms_theme', theme);
+  }
+  setTheme(localStorage.getItem('sms_theme') || 'light');
+  themeToggle.addEventListener('click', function () { setTheme(htmlEl.classList.contains('dark') ? 'light' : 'dark'); });
+
   const OTHER_CATEGORIES = [
     { select: maintCategory, wrap: maintOtherWrap, inputId: 'maintCategoryOther' },
-    { select: expCategory, wrap: expOtherWrap, inputId: 'expCategoryOther' }
+    { select: expCategory, wrap: expOtherWrap, inputId: 'expCategoryOther' },
+    { select: pendCategory, wrap: pendOtherWrap, inputId: 'pendCategoryOther' }
   ];
+
+  function getOpeningBalance() {
+    return parseFloat(localStorage.getItem('sms_opening_balance')) || 0;
+  }
 
   function updateAnalytics() {
     var maintRecords = getMaintenanceRecords();
@@ -33,29 +54,39 @@
     var totalColl = 0, totalExp = 0;
     for (var i = 0; i < maintRecords.length; i++) totalColl += Number(maintRecords[i].amount) || 0;
     for (var i = 0; i < expRecords.length; i++) totalExp += Number(expRecords[i].amount) || 0;
+    var opening = getOpeningBalance();
     document.getElementById('totalCollections').textContent = totalColl.toFixed(2);
     document.getElementById('totalExpenses').textContent = totalExp.toFixed(2);
-    document.getElementById('netBalance').textContent = (totalColl - totalExp).toFixed(2);
+    document.getElementById('netBalance').textContent = (opening + totalColl - totalExp).toFixed(2);
   }
 
   function switchTab(active) {
-    const isMaint = active === 'maintenance';
+    var isMaint = active === 'maintenance';
+    var isExp = active === 'expenses';
+    var isPend = active === 'pending';
     tabMain.classList.toggle('bg-blue-700', isMaint);
     tabMain.classList.toggle('text-white', isMaint);
     tabMain.classList.toggle('bg-white', !isMaint);
     tabMain.classList.toggle('text-gray-700', !isMaint);
     tabMain.setAttribute('aria-selected', isMaint);
-    tabExp.classList.toggle('bg-green-700', !isMaint);
-    tabExp.classList.toggle('text-white', !isMaint);
-    tabExp.classList.toggle('bg-white', isMaint);
-    tabExp.classList.toggle('text-gray-700', isMaint);
-    tabExp.setAttribute('aria-selected', !isMaint);
+    tabExp.classList.toggle('bg-green-700', isExp);
+    tabExp.classList.toggle('text-white', isExp);
+    tabExp.classList.toggle('bg-white', !isExp);
+    tabExp.classList.toggle('text-gray-700', !isExp);
+    tabExp.setAttribute('aria-selected', isExp);
+    tabPend.classList.toggle('bg-amber-600', isPend);
+    tabPend.classList.toggle('text-white', isPend);
+    tabPend.classList.toggle('bg-white', !isPend);
+    tabPend.classList.toggle('text-gray-700', !isPend);
+    tabPend.setAttribute('aria-selected', isPend);
     moduleMain.classList.toggle('hidden', !isMaint);
-    moduleExp.classList.toggle('hidden', isMaint);
+    moduleExp.classList.toggle('hidden', !isExp);
+    modulePend.classList.toggle('hidden', !isPend);
   }
 
   tabMain.addEventListener('click', function () { switchTab('maintenance'); });
   tabExp.addEventListener('click', function () { switchTab('expenses'); });
+  tabPend.addEventListener('click', function () { switchTab('pending'); });
 
   function setupOtherCategory(select, wrap, inputId) {
     function toggleOther() {
@@ -77,6 +108,26 @@
     return input && input.value ? input.value : 'Other';
   }
 
+  var maintFilter = 'all';
+  var expFilter = 'all';
+
+  function applyDateFilter(records, filter) {
+    if (filter === 'all') return records;
+    var now = new Date();
+    if (filter === 'today') {
+      var y = now.getFullYear();
+      var m = String(now.getMonth() + 1).padStart(2, '0');
+      var d = String(now.getDate()).padStart(2, '0');
+      var todayStr = y + '-' + m + '-' + d;
+      return records.filter(function (r) { return r.date === todayStr; });
+    }
+    if (filter === 'month') {
+      var ym = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+      return records.filter(function (r) { return r.date && r.date.indexOf(ym) === 0; });
+    }
+    return records;
+  }
+
   function esc(str) {
     var div = document.createElement('div');
     div.appendChild(document.createTextNode(str));
@@ -85,6 +136,7 @@
 
   function renderMaintenanceList() {
     var records = getMaintenanceRecords();
+    records = applyDateFilter(records, maintFilter);
     var query = (document.getElementById('maint-search').value || '').toLowerCase().trim();
     if (query) records = records.filter(function (r) { return r.flat.toLowerCase().indexOf(query) !== -1; });
     if (!records.length) {
@@ -111,6 +163,7 @@
 
   function renderExpenses() {
     var records = getExpenseRecords();
+    records = applyDateFilter(records, expFilter);
     if (!records.length) {
       expenseList.innerHTML = '<p class="text-gray-400">No records yet.</p>';
       return;
@@ -122,6 +175,37 @@
         '<div class="text-right"><span class="font-bold text-green-700">\u20B9' + Number(r.amount).toFixed(2) + '</span>' +
         '<br><span class="text-xs text-gray-400">' + esc(r.date) + '</span></div></div>';
     }).join('');
+  }
+
+  function renderPendingList() {
+    var records = getPendingRecords();
+    var total = 0;
+    for (var i = 0; i < records.length; i++) total += Number(records[i].amount) || 0;
+    document.getElementById('totalPending').textContent = 'Total: \u20B9' + total.toFixed(2);
+    if (!records.length) {
+      document.getElementById('list-pending').innerHTML = '<p class="text-gray-400">No records yet.</p>';
+      return;
+    }
+    document.getElementById('list-pending').innerHTML = records.slice().reverse().map(function (r, idx) {
+      var i = records.length - 1 - idx;
+      return '<div class="flex justify-between items-center bg-gray-50 rounded-lg p-3">' +
+        '<div><span class="font-semibold text-gray-800">' + esc(r.member) + '</span> ' +
+        '<span class="text-gray-600">' + esc(r.flat) + '</span>' +
+        '<br><span class="text-xs text-gray-400">Due: ' + esc(r.date) + ' | ' + esc(r.category) + '</span></div>' +
+        '<div class="text-right"><span class="font-bold text-red-600">\u20B9' + Number(r.amount).toFixed(2) + '</span>' +
+        '<br><button class="btn-send-reminder text-xs bg-green-100 hover:bg-green-200 text-green-700 px-2 py-1 rounded transition mt-1" data-index="' + i + '">\uD83D\uDD14 Send Reminder</button></div></div>';
+    }).join('');
+    [].slice.call(document.querySelectorAll('.btn-send-reminder')).forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var idx = parseInt(this.dataset.index);
+        var recs = getPendingRecords();
+        var r = recs[idx];
+        if (!r) return;
+        var msg = 'Reminder: Dear Resident, an outstanding balance of Rs. ' + Number(r.amount).toFixed(2) + ' is pending against your unit for ' + r.category + '. Kindly clear it at your earliest convenience. Thank you.';
+        var phone = (r.mobile || '').replace(/\D/g, '');
+        window.open('https://wa.me/91' + phone + '?text=' + encodeURIComponent(msg), '_blank');
+      });
+    });
   }
 
   function launchReceipt(index) {
@@ -201,6 +285,23 @@
     updateAnalytics();
   });
 
+  formPend.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var record = {
+      flat: document.getElementById('pendFlat').value,
+      member: document.getElementById('pendMember').value,
+      mobile: document.getElementById('pendMobile').value,
+      category: getCategoryValue(pendCategory, 'pendCategoryOther'),
+      amount: parseFloat(document.getElementById('pendAmount').value),
+      date: document.getElementById('pendDate').value,
+      timestamp: new Date().toISOString()
+    };
+    addPendingRecord(record);
+    formPend.reset();
+    pendOtherWrap.innerHTML = '';
+    renderPendingList();
+  });
+
   function populateReceipt(record) {
     var rows = [
       ['Member', record.member],
@@ -244,7 +345,8 @@
   document.getElementById('btnExportBackup').addEventListener('click', function () {
     var data = {
       sms_maintenance: getMaintenanceRecords(),
-      sms_expenses: getExpenseRecords()
+      sms_expenses: getExpenseRecords(),
+      sms_pending: getPendingRecords()
     };
     var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     var url = URL.createObjectURL(blob);
@@ -270,8 +372,10 @@
         var data = JSON.parse(e.target.result);
         if (data.sms_maintenance) setRecords(STORAGE_KEYS.MAINTENANCE, data.sms_maintenance);
         if (data.sms_expenses) setRecords(STORAGE_KEYS.EXPENSES, data.sms_expenses);
+        if (data.sms_pending) setRecords(STORAGE_KEYS.PENDING, data.sms_pending);
         renderMaintenanceList();
         renderExpenses();
+        renderPendingList();
         updateAnalytics();
       } catch (err) {
         alert('Invalid backup file.');
@@ -309,7 +413,8 @@
   document.getElementById('btnBackupJson').addEventListener('click', function () {
     var data = {
       sms_maintenance: getMaintenanceRecords(),
-      sms_expenses: getExpenseRecords()
+      sms_expenses: getExpenseRecords(),
+      sms_pending: getPendingRecords()
     };
     var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     var url = URL.createObjectURL(blob);
@@ -326,6 +431,22 @@
     document.getElementById('fileImportBackup').click();
   });
 
+  var openingInput = document.getElementById('previous-closing-balance');
+  openingInput.value = getOpeningBalance().toFixed(2);
+
+  document.getElementById('btnToggleSettings').addEventListener('click', function () {
+    var panel = document.getElementById('settingsPanel');
+    panel.classList.toggle('hidden');
+  });
+
+  document.getElementById('btnSaveOpeningBalance').addEventListener('click', function () {
+    var val = parseFloat(openingInput.value);
+    if (isNaN(val)) { alert('Enter a valid number.'); return; }
+    localStorage.setItem('sms_opening_balance', val);
+    openingInput.value = val.toFixed(2);
+    updateAnalytics();
+  });
+
   document.getElementById('btnResetCache').addEventListener('click', function () {
     if (confirm('⚠️ Are you sure you want to reset all app data? This will permanently delete all records.')) {
       localStorage.clear();
@@ -333,8 +454,23 @@
     }
   });
 
+  function setActiveFilter(btnGroup, activeId) {
+    var btns = document.querySelectorAll('.' + btnGroup);
+    btns.forEach(function (b) { b.classList.remove('bg-blue-700', 'bg-green-700', 'text-white'); b.classList.add('bg-gray-200', 'text-gray-700'); });
+    var active = document.getElementById(activeId);
+    if (active) { active.classList.remove('bg-gray-200', 'text-gray-700'); active.classList.add(activeId.indexOf('Maint') !== -1 ? 'bg-blue-700' : 'bg-green-700', 'text-white'); }
+  }
+
+  document.getElementById('btnMaintFilterAll').addEventListener('click', function () { maintFilter = 'all'; setActiveFilter('maint-filter', 'btnMaintFilterAll'); renderMaintenanceList(); });
+  document.getElementById('btnMaintFilterToday').addEventListener('click', function () { maintFilter = 'today'; setActiveFilter('maint-filter', 'btnMaintFilterToday'); renderMaintenanceList(); });
+  document.getElementById('btnMaintFilterMonth').addEventListener('click', function () { maintFilter = 'month'; setActiveFilter('maint-filter', 'btnMaintFilterMonth'); renderMaintenanceList(); });
+  document.getElementById('btnExpFilterAll').addEventListener('click', function () { expFilter = 'all'; setActiveFilter('exp-filter', 'btnExpFilterAll'); renderExpenses(); });
+  document.getElementById('btnExpFilterToday').addEventListener('click', function () { expFilter = 'today'; setActiveFilter('exp-filter', 'btnExpFilterToday'); renderExpenses(); });
+  document.getElementById('btnExpFilterMonth').addEventListener('click', function () { expFilter = 'month'; setActiveFilter('exp-filter', 'btnExpFilterMonth'); renderExpenses(); });
+
   switchTab('maintenance');
   renderMaintenanceList();
   renderExpenses();
+  renderPendingList();
   updateAnalytics();
 })();
