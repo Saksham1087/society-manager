@@ -281,6 +281,58 @@
     this.value = '';
   });
 
+  document.getElementById('btnExportCsv').addEventListener('click', function () {
+    var records = getMaintenanceRecords();
+    if (!records.length) { alert('No maintenance records to export.'); return; }
+    var csv = 'Member,Flat,Mobile,Category,Amount,Date,Mode,Timestamp\n';
+    records.forEach(function (r) {
+      csv += '"' + (r.member || '').replace(/"/g, '""') + '",';
+      csv += '"' + (r.flat || '').replace(/"/g, '""') + '",';
+      csv += '"' + (r.mobile || '').replace(/"/g, '""') + '",';
+      csv += '"' + (r.category || '').replace(/"/g, '""') + '",';
+      csv += (r.amount || 0) + ',';
+      csv += '"' + (r.date || '').replace(/"/g, '""') + '",';
+      csv += '"' + (r.mode || '').replace(/"/g, '""') + '",';
+      csv += '"' + (r.timestamp || '').replace(/"/g, '""') + '"\n';
+    });
+    var blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'maintenance_export.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  document.getElementById('btnBackupJson').addEventListener('click', function () {
+    var data = {
+      sms_maintenance: getMaintenanceRecords(),
+      sms_expenses: getExpenseRecords()
+    };
+    var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'society_ledger_backup.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  document.getElementById('btnRestoreBackup').addEventListener('click', function () {
+    document.getElementById('fileImportBackup').click();
+  });
+
+  document.getElementById('btnResetCache').addEventListener('click', function () {
+    if (confirm('⚠️ Are you sure you want to reset all app data? This will permanently delete all records.')) {
+      localStorage.clear();
+      location.reload();
+    }
+  });
+
   switchTab('maintenance');
   renderMaintenanceList();
   renderExpenses();

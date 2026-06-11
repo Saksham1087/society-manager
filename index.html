@@ -191,6 +191,31 @@
     </section>
   </main>
 
+  <footer class="mt-8 pb-6 no-print">
+    <div class="max-w-3xl mx-auto px-4">
+      <div class="bg-white rounded-xl shadow-sm p-3 border border-gray-200">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <button id="btnExportCsv"
+                  class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-2 rounded transition font-medium">
+            📥 Export Excel/CSV
+          </button>
+          <button id="btnBackupJson"
+                  class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-2 rounded transition font-medium">
+            💾 Backup Database (JSON)
+          </button>
+          <button id="btnRestoreBackup"
+                  class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-2 rounded transition font-medium">
+            📂 Restore Backup
+          </button>
+          <button id="btnResetCache"
+                  class="text-xs bg-red-100 hover:bg-red-200 text-red-700 px-2 py-2 rounded transition font-medium">
+            ⚠️ Reset App Cache
+          </button>
+        </div>
+      </div>
+    </div>
+  </footer>
+
   <div id="receiptModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40">
     <div class="bg-white rounded-xl shadow-xl max-w-sm w-full mx-4 p-6 print:shadow-none print:border">
       <div class="text-center border-b pb-3 mb-4">
