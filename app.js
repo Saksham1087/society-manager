@@ -447,22 +447,65 @@
     }
   });
 
-  document.getElementById('btnExportBackup').addEventListener('click', function () {
-    var data = {
-      sms_maintenance: getMaintenanceRecords(),
-      sms_expenses: getExpenseRecords(),
-      sms_pending: getPendingRecords(),
-      sms_members: getMemberRecords()
-    };
+  function promptBackupChoice() {
+    var choice = prompt(
+      'Select data to backup:\n\n' +
+      '1 - Maintenance\n' +
+      '2 - Expenses\n' +
+      '3 - Defaulters\n' +
+      '4 - Members\n' +
+      '5 - Export All (Complete Master Backup)\n\n' +
+      'Enter a number (1-5):'
+    );
+    if (choice === null) return null;
+    choice = choice.trim();
+    if (!/^[1-5]$/.test(choice)) {
+      alert('Invalid option. Please enter a number between 1 and 5.');
+      return null;
+    }
+    return parseInt(choice, 10);
+  }
+
+  function downloadJson(data, filename) {
     var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
     a.href = url;
-    a.download = 'society_ledger_backup.json';
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  }
+
+  document.getElementById('btnExportBackup').addEventListener('click', function () {
+    var choice = promptBackupChoice();
+    if (choice === null) return;
+    var data, filename;
+    if (choice === 5) {
+      data = {
+        sms_maintenance: getMaintenanceRecords(),
+        sms_expenses: getExpenseRecords(),
+        sms_pending: getPendingRecords(),
+        sms_members: getMemberRecords()
+      };
+      filename = 'society_complete_master_backup.json';
+    } else {
+      var keyMap = { 1: 'sms_maintenance', 2: 'sms_expenses', 3: 'sms_pending', 4: 'sms_members' };
+      var labelMap = { 1: 'maintenance', 2: 'expenses', 3: 'defaulters', 4: 'members' };
+      var getterMap = {
+        1: getMaintenanceRecords,
+        2: getExpenseRecords,
+        3: getPendingRecords,
+        4: getMemberRecords
+      };
+      var key = keyMap[choice];
+      var records = getterMap[choice]();
+      data = {};
+      data[key] = records;
+      filename = 'society_' + labelMap[choice] + '_backup.json';
+    }
+    downloadJson(data, filename);
   });
 
   document.getElementById('btnImportBackup').addEventListener('click', function () {
@@ -494,47 +537,110 @@
     this.value = '';
   });
 
-  document.getElementById('btnExportCsv').addEventListener('click', function () {
-    var records = getMaintenanceRecords();
-    if (!records.length) { alert('No maintenance records to export.'); return; }
-    var csv = 'Member,Flat,Mobile,Category,Amount,Date,Mode,Timestamp\n';
-    records.forEach(function (r) {
-      csv += '"' + (r.member || '').replace(/"/g, '""') + '",';
-      csv += '"' + (r.flat || '').replace(/"/g, '""') + '",';
-      csv += '"' + (r.mobile || '').replace(/"/g, '""') + '",';
-      csv += '"' + (r.category || '').replace(/"/g, '""') + '",';
-      csv += (r.amount || 0) + ',';
-      csv += '"' + (r.date || '').replace(/"/g, '""') + '",';
-      csv += '"' + (r.mode || '').replace(/"/g, '""') + '",';
-      csv += '"' + (r.timestamp || '').replace(/"/g, '""') + '"\n';
-    });
+  function downloadCsv(csv, filename) {
+    if (!csv) { alert('No data to export.'); return; }
     var blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
     a.href = url;
-    a.download = 'maintenance_export.csv';
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  }
+
+  function toCsvRow(values) {
+    return values.map(function (v) {
+      var str = String(v == null ? '' : v);
+      return '"' + str.replace(/"/g, '""') + '"';
+    }).join(',') + '\n';
+  }
+
+  document.getElementById('btnExportCsv').addEventListener('click', function () {
+    var choice = prompt(
+      'Select data to export as CSV:\n\n' +
+      '1 - Maintenance\n' +
+      '2 - Expenses\n' +
+      '3 - Defaulters\n' +
+      '4 - Members\n\n' +
+      'Enter a number (1-4):'
+    );
+    if (choice === null) return;
+    choice = choice.trim();
+    if (!/^[1-4]$/.test(choice)) {
+      alert('Invalid option. Please enter a number between 1 and 4.');
+      return;
+    }
+    choice = parseInt(choice, 10);
+
+    var records, csv, filename;
+
+    if (choice === 1) {
+      records = getMaintenanceRecords();
+      if (!records.length) { alert('No maintenance records to export.'); return; }
+      csv = toCsvRow(['Date', 'Flat', 'Name', 'Mobile', 'Category', 'Mode', 'Amount']);
+      records.forEach(function (r) {
+        csv += toCsvRow([r.date, r.flat, r.member, r.mobile, r.category, r.mode, r.amount]);
+      });
+      filename = 'society_maintenance_ledger.csv';
+    } else if (choice === 2) {
+      records = getExpenseRecords();
+      if (!records.length) { alert('No expense records to export.'); return; }
+      csv = toCsvRow(['Date', 'Category', 'Amount', 'Vendor', 'Mode', 'Bill No', 'Description']);
+      records.forEach(function (r) {
+        csv += toCsvRow([r.date, r.category, r.amount, r.vendor, r.mode, r.billNo, r.description]);
+      });
+      filename = 'society_expenses_ledger.csv';
+    } else if (choice === 3) {
+      records = getPendingRecords();
+      if (!records.length) { alert('No defaulter records to export.'); return; }
+      csv = toCsvRow(['Date', 'Flat', 'Name', 'Mobile', 'Category', 'Amount']);
+      records.forEach(function (r) {
+        csv += toCsvRow([r.date, r.flat, r.member, r.mobile, r.category, r.amount]);
+      });
+      filename = 'society_defaulters_ledger.csv';
+    } else if (choice === 4) {
+      records = JSON.parse(localStorage.getItem('sms_members')) || [];
+      if (!records.length) { alert('No member records to export.'); return; }
+      csv = toCsvRow(['Name', 'Flat', 'Mobile No']);
+      records.forEach(function (r) {
+        csv += toCsvRow([r.name, r.flat, r.phone]);
+      });
+      filename = 'society_members_directory.csv';
+    }
+
+    downloadCsv(csv, filename);
   });
 
   document.getElementById('btnBackupJson').addEventListener('click', function () {
-    var data = {
-      sms_maintenance: getMaintenanceRecords(),
-      sms_expenses: getExpenseRecords(),
-      sms_pending: getPendingRecords(),
-      sms_members: getMemberRecords()
-    };
-    var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = 'society_ledger_backup.json';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    var choice = promptBackupChoice();
+    if (choice === null) return;
+    var data, filename;
+    if (choice === 5) {
+      data = {
+        sms_maintenance: getMaintenanceRecords(),
+        sms_expenses: getExpenseRecords(),
+        sms_pending: getPendingRecords(),
+        sms_members: getMemberRecords()
+      };
+      filename = 'society_complete_master_backup.json';
+    } else {
+      var keyMap = { 1: 'sms_maintenance', 2: 'sms_expenses', 3: 'sms_pending', 4: 'sms_members' };
+      var labelMap = { 1: 'maintenance', 2: 'expenses', 3: 'defaulters', 4: 'members' };
+      var getterMap = {
+        1: getMaintenanceRecords,
+        2: getExpenseRecords,
+        3: getPendingRecords,
+        4: getMemberRecords
+      };
+      var key = keyMap[choice];
+      var records = getterMap[choice]();
+      data = {};
+      data[key] = records;
+      filename = 'society_' + labelMap[choice] + '_backup.json';
+    }
+    downloadJson(data, filename);
   });
 
   document.getElementById('btnRestoreBackup').addEventListener('click', function () {
