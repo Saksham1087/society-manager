@@ -447,156 +447,70 @@
     }
   });
 
-  var currentExportFormat = null;
-
-  function showExportModal(format) {
-    currentExportFormat = format;
-    var modal = document.getElementById('export-modal');
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-  }
-
-  function hideExportModal() {
-    var modal = document.getElementById('export-modal');
-    modal.classList.add('hidden');
-    modal.classList.remove('flex');
-    currentExportFormat = null;
-  }
-
-  function getLocalData(key) {
-    try {
-      var data = localStorage.getItem(key);
-      return data ? JSON.parse(data) : [];
-    } catch (e) {
-      return [];
-    }
-  }
-
-  function performExport(btnId) {
-    var format = currentExportFormat;
-    if (!format) { hideExportModal(); return; }
-
-    var isAll = btnId === 'btn-exp-all';
-
-    if (format === 'json') {
-      var data, filename;
-
-      if (isAll) {
-        data = {
-          maintenance: getLocalData('sms_maintenance'),
-          expenses:    getLocalData('sms_expenses'),
-          defaulters:  getLocalData('sms_defaulters'),
-          members:     getLocalData('sms_members')
-        };
-        filename = 'society_complete_master_backup.json';
-      } else {
-        var jsonSource = {
-          'btn-exp-maint': { key: 'sms_maintenance', label: 'maintenance' },
-          'btn-exp-exp':   { key: 'sms_expenses',   label: 'expenses' },
-          'btn-exp-def':   { key: 'sms_defaulters',  label: 'defaulters' },
-          'btn-exp-mem':   { key: 'sms_members',     label: 'members' }
-        };
-        var src = jsonSource[btnId];
-        if (!src) { hideExportModal(); return; }
-        data = {};
-        data[src.key] = getLocalData(src.key);
-        filename = 'society_' + src.label + '_backup.json';
-      }
-
-      var jsonStr = JSON.stringify(data, null, 2);
-      var blob = new Blob([jsonStr], { type: 'application/json' });
-      var url = URL.createObjectURL(blob);
-      var link = document.createElement('a');
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-
-    } else if (format === 'csv') {
-      var csvSource = {
-        'btn-exp-maint': {
-          key: 'sms_maintenance',
-          headers: 'Date,Flat,Name,Mobile,Category,Mode,Amount\n',
-          fields: ['date', 'flat', 'member', 'mobile', 'category', 'mode', 'amount'],
-          filename: 'society_maintenance_ledger.csv'
-        },
-        'btn-exp-exp': {
-          key: 'sms_expenses',
-          headers: 'Date,Category,Amount,Vendor,Mode,Bill No,Description\n',
-          fields: ['date', 'category', 'amount', 'vendor', 'mode', 'billNo', 'description'],
-          filename: 'society_expenses_ledger.csv'
-        },
-        'btn-exp-def': {
-          key: 'sms_defaulters',
-          headers: 'Date,Flat,Name,Mobile,Category,Amount\n',
-          fields: ['date', 'flat', 'member', 'mobile', 'category', 'amount'],
-          filename: 'society_defaulters_ledger.csv'
-        },
-        'btn-exp-mem': {
-          key: 'sms_members',
-          headers: 'Name,Flat,Mobile\n',
-          fields: ['name', 'flat', 'phone'],
-          filename: 'society_members_directory.csv'
-        },
-        'btn-exp-all': {
-          key: 'sms_maintenance',
-          headers: 'Date,Flat,Name,Mobile,Category,Mode,Amount\n',
-          fields: ['date', 'flat', 'member', 'mobile', 'category', 'mode', 'amount'],
-          filename: 'society_complete_ledger.csv'
-        }
-      };
-      var src = csvSource[btnId];
-      if (!src) { hideExportModal(); return; }
-      var records = getLocalData(src.key);
-      if (!records.length) { alert('No records to export.'); hideExportModal(); return; }
-
-      var csv = src.headers;
-      records.forEach(function (r) {
-        var row = src.fields.map(function (f) {
-          var val = r[f];
-          var str = String(val == null ? '' : val);
-          return '"' + str.replace(/"/g, '""') + '"';
-        }).join(',');
-        csv += row + '\n';
-      });
-
-      var blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
-      var url = URL.createObjectURL(blob);
-      var link = document.createElement('a');
-      link.href = url;
-      link.download = src.filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    }
-
-    hideExportModal();
-  }
-
-  document.getElementById('btnExportCsv').addEventListener('click', function () {
-    showExportModal('csv');
+  document.getElementById('btn-export-csv').addEventListener('click', function () {
+    var records = JSON.parse(localStorage.getItem('sms_maintenance')) || [];
+    if (!records.length) { alert('No maintenance records to export.'); return; }
+    alert('Preparing CSV export...');
+    var csv = 'Date,Flat,Name,Mobile,Category,Mode,Amount\n';
+    records.forEach(function (r) {
+      var row = [r.date, r.flat, r.member, r.mobile, r.category, r.mode, r.amount].map(function (v) {
+        var str = String(v == null ? '' : v);
+        return '"' + str.replace(/"/g, '""') + '"';
+      }).join(',');
+      csv += row + '\n';
+    });
+    var blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'society_maintenance_ledger.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    alert('CSV export downloaded successfully!');
   });
 
-  document.getElementById('btnBackupJson').addEventListener('click', function () {
-    showExportModal('json');
+  document.getElementById('btn-export-json').addEventListener('click', function () {
+    alert('Preparing JSON backup...');
+    var masterData = {
+      maintenance: JSON.parse(localStorage.getItem('sms_maintenance')) || [],
+      expenses: JSON.parse(localStorage.getItem('sms_expenses')) || [],
+      defaulters: JSON.parse(localStorage.getItem('sms_defaulters')) || [],
+      members: JSON.parse(localStorage.getItem('sms_members')) || []
+    };
+    var jsonStr = JSON.stringify(masterData, null, 2);
+    var blob = new Blob([jsonStr], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'society_master_backup.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    alert('JSON backup downloaded successfully!');
   });
 
   document.getElementById('btnExportBackup').addEventListener('click', function () {
-    showExportModal('json');
-  });
-
-  document.getElementById('btn-exp-maint').addEventListener('click', function () { performExport('btn-exp-maint'); });
-  document.getElementById('btn-exp-exp').addEventListener('click', function () { performExport('btn-exp-exp'); });
-  document.getElementById('btn-exp-def').addEventListener('click', function () { performExport('btn-exp-def'); });
-  document.getElementById('btn-exp-mem').addEventListener('click', function () { performExport('btn-exp-mem'); });
-  document.getElementById('btn-exp-all').addEventListener('click', function () { performExport('btn-exp-all'); });
-  document.getElementById('btn-exp-cancel').addEventListener('click', hideExportModal);
-
-  document.getElementById('export-modal').addEventListener('click', function (e) {
-    if (e.target === this) hideExportModal();
+    alert('Preparing JSON backup...');
+    var masterData = {
+      maintenance: JSON.parse(localStorage.getItem('sms_maintenance')) || [],
+      expenses: JSON.parse(localStorage.getItem('sms_expenses')) || [],
+      defaulters: JSON.parse(localStorage.getItem('sms_defaulters')) || [],
+      members: JSON.parse(localStorage.getItem('sms_members')) || []
+    };
+    var jsonStr = JSON.stringify(masterData, null, 2);
+    var blob = new Blob([jsonStr], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'society_master_backup.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    alert('JSON backup downloaded successfully!');
   });
 
   document.getElementById('btnImportBackup').addEventListener('click', function () {
