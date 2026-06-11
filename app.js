@@ -654,34 +654,20 @@
   document.getElementById('banner-upload').addEventListener('change', function () {
     var file = this.files[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      alert('File size exceeds 5MB. Please upload a smaller image.');
-      this.value = ''; return;
-    }
     if (['image/jpeg', 'image/png', 'image/webp'].indexOf(file.type) === -1) {
       alert('Only JPEG, PNG, or WebP images are allowed.');
       this.value = ''; return;
     }
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Error: Image file size must not exceed 5MB!');
+      this.value = ''; return;
+    }
     var reader = new FileReader();
     reader.onload = function (e) {
-      var img = new Image();
-      img.onload = function () {
-        var ratio = img.width / img.height;
-        if (Math.abs(ratio - 4.8) > 0.1) {
-          alert('Invalid dimensions. Image must be 1920x400px (4.8:1 ratio). Got ' + img.width + 'x' + img.height + '.');
-          document.getElementById('banner-upload').value = ''; return;
-        }
-        localStorage.setItem('sms_custom_banner', e.target.result);
-        localStorage.removeItem('sms_legal_header');
-        alert('Banner uploaded successfully!');
-        document.getElementById('banner-upload').value = '';
-        renderWebsiteHeader();
-      };
-      img.onerror = function () {
-        alert('Failed to load image. Please try another file.');
-        document.getElementById('banner-upload').value = '';
-      };
-      img.src = e.target.result;
+      localStorage.setItem('sms_custom_banner', e.target.result);
+      localStorage.removeItem('sms_legal_header');
+      document.getElementById('banner-upload').value = '';
+      renderWebsiteHeader();
     };
     reader.readAsDataURL(file);
   });
