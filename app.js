@@ -780,6 +780,283 @@
     }
   });
 
+  // ========== CLOUD SYNC CONFIGURATION ==========
+  // Register your apps and replace these values:
+  var CLOUD_CONFIG = {
+    google: { clientId: 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com', apiKey: 'YOUR_GOOGLE_API_KEY' },
+    dropbox: { appKey: 'YOUR_DROPBOX_APP_KEY' },
+    onedrive: { clientId: 'YOUR_ONEDRIVE_CLIENT_ID' }
+  };
+
+  // ========== HELPERS ==========
+  function getBackupFilename() {
+    var now = new Date();
+    return 'society_manager_backup_' + now.getFullYear() + '-' +
+      String(now.getMonth() + 1).padStart(2, '0') + '-' +
+      String(now.getDate()).padStart(2, '0') + '_' +
+      String(now.getHours()).padStart(2, '0') +
+      String(now.getMinutes()).padStart(2, '0') +
+      String(now.getSeconds()).padStart(2, '0') + '.json';
+  }
+
+  function exportDataPayload() {
+    return JSON.stringify({
+      sms_maintenance: JSON.parse(localStorage.getItem('sms_maintenance')) || [],
+      sms_expenses: JSON.parse(localStorage.getItem('sms_expenses')) || [],
+      sms_pending: JSON.parse(localStorage.getItem('sms_pending')) || [],
+      sms_members: JSON.parse(localStorage.getItem('sms_members')) || []
+    }, null, 2);
+  }
+
+  function importDataPayload(jsonStr) {
+    try {
+      var data = JSON.parse(jsonStr);
+      var hasData = false;
+      if (data.sms_maintenance) { setRecords(STORAGE_KEYS.MAINTENANCE, data.sms_maintenance); hasData = true; }
+      if (data.sms_expenses) { setRecords(STORAGE_KEYS.EXPENSES, data.sms_expenses); hasData = true; }
+      if (data.sms_pending) { setRecords(STORAGE_KEYS.PENDING, data.sms_pending); hasData = true; }
+      if (data.sms_members) { setRecords(STORAGE_KEYS.MEMBERS, data.sms_members); hasData = true; }
+      if (!hasData) { alert('Invalid backup file format.'); return false; }
+      renderMaintenanceList(); renderExpenses(); renderPendingList();
+      populateMemberDropdown(); renderMembersList(); updateAnalytics();
+      return true;
+    } catch (e) { alert('Restore error: ' + e.message); return false; }
+  }
+
+  function loadScript(url, cb) {
+    var s = document.createElement('script'); s.src = url; s.onload = cb;
+    document.head.appendChild(s);
+  }
+
+  // ========== PANEL TOGGLE ==========
+  document.getElementById('btnToggleCloudSync').addEventListener('click', function () {
+    document.getElementById('cloudSyncPanel').classList.toggle('hidden');
+  });
+
+  // ========== GOOGLE DRIVE ==========
+  var gDriveToken = null;
+
+  function initGIS(cb) {
+    if (typeof google !== 'undefined' && google.accounts && google.accounts.oauth2) { if (cb) cb(); return; }
+    loadScript('https://accounts.google.com/gsi/client', cb);
+  }
+
+  function gDriveAuth(cb) {
+    initGIS(function () {
+      if (gDriveToken) { if (cb) cb(gDriveToken); return; }
+      var client = google.accounts.oauth2.initTokenClient({
+        client_id: CLOUD_CONFIG.google.clientId,
+        scope: 'https://www.googleapis.com/auth/drive.file',
+        callback: function (resp) {
+          if (resp.access_token) { gDriveToken = resp.access_token; if (cb) cb(gDriveToken); }
+          else { alert('Google Drive authorization failed.'); }
+        }
+      });
+      client.requestAccessToken();
+    });
+  }
+
+  function gDriveBackup() {
+    gDriveAuth(function (token) {
+      var payload = exportDataPayload();
+      var filename = getBackupFilename();
+      var boundary = 'boundary_' + Date.now();
+      var body = '';
+      body += '--' + boundary + '\r\n';
+      body += 'Content-Type: application/json\r\n\r\n';
+      body += JSON.stringify({ name: filename, mimeType: 'application/json' }) + '\r\n';
+      body += '--' + boundary + '\r\n';
+      body += 'Content-Type: application/json\r\n\r\n';
+      body += payload + '\r\n';
+      body += '--' + boundary + '--';
+      fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'multipart/related; boundary=' + boundary },
+        body: body
+      }).then(function (r) { return r.json(); }).then(function (res) {
+        if (res.id) alert('\u2705 Google Drive backup saved as: ' + filename);
+        else alert('\u274C Upload failed: ' + (res.error ? res.error.message : 'Unknown'));
+      }).catch(function (err) { alert('\u274C Upload error: ' + err.message); });
+    });
+  }
+
+  function gDriveRestore() {
+    gDriveAuth(function (token) {
+      fetch('https://www.googleapis.com/drive/v3/files?q=name+contains+%27society_manager_backup%27+and+mimeType%3D%27application%2Fjson%27&orderBy=createdTime+desc&fields=files(id%2Cname%2CcreatedTime)', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      }).then(function (r) { return r.json(); }).then(function (data) {
+        var files = data.files || [];
+        if (!files.length) { alert('No backup files found in Google Drive.'); return; }
+        var file = files[0];
+        if (files.length > 1) {
+          var choice = prompt('Multiple backups found. Enter the number (1 = most recent):\n' +
+            files.map(function (f, i) { return (i + 1) + '. ' + f.name + ' (' + f.createdTime + ')'; }).join('\n'), '1');
+          var idx = parseInt(choice) - 1;
+          if (idx >= 0 && idx < files.length) file = files[idx];
+        }
+        return fetch('https://www.googleapis.com/drive/v3/files/' + file.id + '?alt=media', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        }).then(function (r) { return r.text(); });
+      }).then(function (content) {
+        if (content && importDataPayload(content)) alert('\u2705 Backup restored from Google Drive successfully!');
+      }).catch(function (err) { alert('\u274C Restore error: ' + err.message); });
+    });
+  }
+
+  // ========== DROPBOX ==========
+  var dropboxToken = localStorage.getItem('sms_dropbox_access_token') || null;
+
+  function dropboxRedirect(mode) {
+    var redirectUri = window.location.origin + window.location.pathname;
+    sessionStorage.setItem('sms_dbx_mode', mode);
+    window.location.href = 'https://www.dropbox.com/oauth2/authorize?client_id=' + CLOUD_CONFIG.dropbox.appKey +
+      '&response_type=token&redirect_uri=' + encodeURIComponent(redirectUri);
+  }
+
+  function doDropboxUpload() {
+    var payload = exportDataPayload();
+    var filename = getBackupFilename();
+    var dbx = new Dropbox.Dropbox({ accessToken: dropboxToken, fetch: fetch });
+    dbx.filesUpload({ path: '/' + filename, contents: payload, mode: 'add', autorename: true })
+      .then(function () { alert('\u2705 Dropbox backup saved as: ' + filename); })
+      .catch(function (err) { alert('\u274C Dropbox upload error: ' + (err.error && err.error.error ? err.error.error.summary : err.message)); });
+  }
+
+  function doDropboxDownload(filePath) {
+    var dbx = new Dropbox.Dropbox({ accessToken: dropboxToken, fetch: fetch });
+    dbx.filesDownload({ path: filePath })
+      .then(function (resp) {
+        var reader = new FileReader();
+        reader.onload = function () { if (importDataPayload(reader.result)) alert('\u2705 Backup restored from Dropbox successfully!'); };
+        reader.readAsText(resp.fileBlob);
+      })
+      .catch(function (err) { alert('\u274C Dropbox download error: ' + (err.error && err.error.error ? err.error.error.summary : err.message)); });
+  }
+
+  function dropboxBackup() {
+    if (dropboxToken) { doDropboxUpload(); return; }
+    loadScript('https://unpkg.com/dropbox@10.34.0/dist/Dropbox-sdk.min.js', function () {
+      dropboxRedirect('backup');
+    });
+  }
+
+  function dropboxRestore() {
+    if (!dropboxToken) {
+      loadScript('https://unpkg.com/dropbox@10.34.0/dist/Dropbox-sdk.min.js', function () {
+        dropboxRedirect('restore');
+      });
+      return;
+    }
+    loadScript('https://unpkg.com/dropbox@10.34.0/dist/Dropbox-sdk.min.js', function () {
+      var dbx = new Dropbox.Dropbox({ accessToken: dropboxToken, fetch: fetch });
+      dbx.filesListFolder({ path: '', query: 'society_manager_backup' })
+        .then(function (resp) {
+          var entries = resp.entries.filter(function (e) { return e.name.indexOf('society_manager_backup') !== -1; });
+          if (!entries.length) { alert('No backup files found in Dropbox.'); return; }
+          var entry = entries[0];
+          if (entries.length > 1) {
+            var choice = prompt('Multiple backups found. Enter the number (1 = most recent):\n' +
+              entries.map(function (e, i) { return (i + 1) + '. ' + e.name + ' (' + e.client_modified + ')'; }).join('\n'), '1');
+            var idx = parseInt(choice) - 1;
+            if (idx >= 0 && idx < entries.length) entry = entries[idx];
+          }
+          doDropboxDownload(entry.path_lower);
+        })
+        .catch(function (err) { alert('\u274C Dropbox list error: ' + (err.error && err.error.error ? err.error.error.summary : err.message)); });
+    });
+  }
+
+  // ========== ONEDRIVE ==========
+  var odriveToken = null;
+
+  function odriveRedirect(mode) {
+    var redirectUri = window.location.origin + window.location.pathname;
+    var nonce = Date.now();
+    sessionStorage.setItem('sms_odrive_mode', mode);
+    window.location.href = 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=' +
+      CLOUD_CONFIG.onedrive.clientId + '&response_type=token&scope=Files.ReadWrite%20offline_access&redirect_uri=' +
+      encodeURIComponent(redirectUri) + '&nonce=' + nonce;
+  }
+
+  function odriveUpload() {
+    var payload = exportDataPayload();
+    var filename = getBackupFilename();
+    fetch('https://graph.microsoft.com/v1.0/me/drive/root:/' + filename + ':/content', {
+      method: 'PUT',
+      headers: { 'Authorization': 'Bearer ' + odriveToken, 'Content-Type': 'application/json' },
+      body: payload
+    }).then(function (r) { return r.json(); }).then(function (res) {
+      if (res.id) alert('\u2705 OneDrive backup saved as: ' + filename);
+      else alert('\u274C OneDrive upload failed: ' + (res.error ? res.error.message : 'Unknown'));
+    }).catch(function (err) { alert('\u274C OneDrive upload error: ' + err.message); });
+  }
+
+  function odriveRestore() {
+    fetch('https://graph.microsoft.com/v1.0/me/drive/root/search(q=%27society_manager_backup%27)?$select=id,name,createdDateTime', {
+      headers: { 'Authorization': 'Bearer ' + odriveToken }
+    }).then(function (r) { return r.json(); }).then(function (data) {
+      var files = data.value || [];
+      if (!files.length) { alert('No backup files found in OneDrive.'); return; }
+      var file = files[0];
+      if (files.length > 1) {
+        var choice = prompt('Multiple backups found. Enter number (1 = most recent):\n' +
+          files.map(function (f, i) { return (i + 1) + '. ' + f.name + ' (' + f.createdDateTime + ')'; }).join('\n'), '1');
+        var idx = parseInt(choice) - 1;
+        if (idx >= 0 && idx < files.length) file = files[idx];
+      }
+      return fetch('https://graph.microsoft.com/v1.0/me/drive/items/' + file.id + '/content', {
+        headers: { 'Authorization': 'Bearer ' + odriveToken }
+      }).then(function (r) { return r.text(); });
+    }).then(function (content) {
+      if (content && importDataPayload(content)) alert('\u2705 Backup restored from OneDrive successfully!');
+    }).catch(function (err) { alert('\u274C OneDrive restore error: ' + err.message); });
+  }
+
+  // ========== BUTTON HANDLERS ==========
+  document.getElementById('btn-backup-gdrive').addEventListener('click', gDriveBackup);
+  document.getElementById('btn-restore-gdrive').addEventListener('click', gDriveRestore);
+  document.getElementById('btn-backup-dropbox').addEventListener('click', dropboxBackup);
+  document.getElementById('btn-restore-dropbox').addEventListener('click', dropboxRestore);
+  document.getElementById('btn-backup-onedrive').addEventListener('click', function () {
+    if (odriveToken) { odriveUpload(); return; }
+    odriveRedirect('backup');
+  });
+  document.getElementById('btn-restore-onedrive').addEventListener('click', function () {
+    if (!odriveToken) { odriveRedirect('restore'); return; }
+    odriveRestore();
+  });
+
+  // ========== OAUTH REDIRECT HANDLER (Dropbox & OneDrive) ==========
+  (function handleOAuthRedirect() {
+    var hash = window.location.hash;
+    if (hash.indexOf('access_token=') !== -1) {
+      var params = {};
+      hash.replace(/[?&]+([^=&]+)=([^&]*)/g, function (m, k, v) { params[k] = decodeURIComponent(v); });
+      if (params.access_token) {
+        var dbxMode = sessionStorage.getItem('sms_dbx_mode');
+        var odMode = sessionStorage.getItem('sms_odrive_mode');
+        if (dbxMode) {
+          sessionStorage.removeItem('sms_dbx_mode');
+          dropboxToken = params.access_token;
+          localStorage.setItem('sms_dropbox_access_token', params.access_token);
+          loadScript('https://unpkg.com/dropbox@10.34.0/dist/Dropbox-sdk.min.js', function () {
+            if (dbxMode === 'backup') doDropboxUpload();
+            else if (dbxMode === 'restore') dropboxRestore();
+          });
+        } else if (odMode) {
+          sessionStorage.removeItem('sms_odrive_mode');
+          odriveToken = params.access_token;
+          if (odMode === 'backup') odriveUpload();
+          else if (odMode === 'restore') odriveRestore();
+        }
+        // Clean URL
+        if (window.history && window.history.replaceState) {
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+      }
+    }
+  })();
+
   renderWebsiteHeader();
   populateMemberDropdown();
   renderMembersList();
