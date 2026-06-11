@@ -583,6 +583,129 @@
   document.getElementById('btnExpFilterToday').addEventListener('click', function () { expFilter = 'today'; setActiveFilter('exp-filter', 'btnExpFilterToday'); renderExpenses(); });
   document.getElementById('btnExpFilterMonth').addEventListener('click', function () { expFilter = 'month'; setActiveFilter('exp-filter', 'btnExpFilterMonth'); renderExpenses(); });
 
+  function renderWebsiteHeader() {
+    var branding = document.getElementById('header-branding');
+    if (!branding) return;
+    var customBanner = localStorage.getItem('sms_custom_banner');
+    var legalHeader = localStorage.getItem('sms_legal_header');
+    if (customBanner) {
+      branding.innerHTML = '';
+      branding.style.backgroundImage = 'url(' + customBanner + ')';
+      branding.style.backgroundSize = 'cover';
+      branding.style.backgroundPosition = 'center';
+      branding.style.backgroundRepeat = 'no-repeat';
+      branding.style.height = '400px';
+      branding.style.padding = '0';
+    } else if (legalHeader) {
+      try {
+        var h = JSON.parse(legalHeader);
+        branding.style.backgroundImage = 'none';
+        branding.style.height = 'auto';
+        branding.style.padding = '';
+        branding.innerHTML =
+          '<div class="px-4 py-6 text-center">' +
+            '<h1 class="text-2xl font-bold">' + esc(h.buildingName) + '</h1>' +
+            '<p class="text-sm mt-1 opacity-80">Reg No: ' + esc(h.regNumber) + ' | Survey No: ' + esc(h.surveyNumber) +
+            (h.hissaNumber ? ' | Hissa No: ' + esc(h.hissaNumber) : '') + '</p>' +
+            '<hr class="border-white/30 my-2 max-w-xl mx-auto">' +
+            '<p class="text-sm opacity-90">' + esc(h.address).replace(/\n/g, '<br>') + '</p>' +
+          '</div>';
+      } catch (e) {
+        branding.innerHTML = '';
+        branding.style.backgroundImage = 'none';
+        branding.style.height = 'auto';
+      }
+    } else {
+      branding.innerHTML = '';
+      branding.style.backgroundImage = 'none';
+      branding.style.height = 'auto';
+      branding.style.padding = '';
+    }
+  }
+
+  function switchBrandTab(tab) {
+    var imgPanel = document.getElementById('brand-tab-img');
+    var formPanel = document.getElementById('brand-tab-form');
+    var imgBtn = document.getElementById('btn-brand-tab-img');
+    var formBtn = document.getElementById('btn-brand-tab-form');
+    if (!imgPanel || !formPanel) return;
+    imgPanel.classList.toggle('hidden', tab !== 'img');
+    formPanel.classList.toggle('hidden', tab !== 'form');
+    [imgBtn, formBtn].forEach(function (btn) {
+      btn.classList.remove('bg-blue-600', 'text-white', 'bg-gray-200', 'dark:bg-slate-600', 'text-gray-700', 'dark:text-gray-200');
+    });
+    if (tab === 'img') {
+      imgBtn.classList.add('bg-blue-600', 'text-white');
+      formBtn.classList.add('bg-gray-200', 'dark:bg-slate-600', 'text-gray-700', 'dark:text-gray-200');
+    } else {
+      formBtn.classList.add('bg-blue-600', 'text-white');
+      imgBtn.classList.add('bg-gray-200', 'dark:bg-slate-600', 'text-gray-700', 'dark:text-gray-200');
+    }
+  }
+
+  document.getElementById('btnToggleBranding').addEventListener('click', function () {
+    var panel = document.getElementById('brandingPanel');
+    panel.classList.toggle('hidden');
+  });
+
+  document.getElementById('btn-brand-tab-img').addEventListener('click', function () { switchBrandTab('img'); });
+  document.getElementById('btn-brand-tab-form').addEventListener('click', function () { switchBrandTab('form'); });
+
+  document.getElementById('banner-upload').addEventListener('change', function () {
+    var file = this.files[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size exceeds 5MB. Please upload a smaller image.');
+      this.value = ''; return;
+    }
+    if (['image/jpeg', 'image/png', 'image/webp'].indexOf(file.type) === -1) {
+      alert('Only JPEG, PNG, or WebP images are allowed.');
+      this.value = ''; return;
+    }
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      var img = new Image();
+      img.onload = function () {
+        var ratio = img.width / img.height;
+        if (Math.abs(ratio - 4.8) > 0.1) {
+          alert('Invalid dimensions. Image must be 1920x400px (4.8:1 ratio). Got ' + img.width + 'x' + img.height + '.');
+          document.getElementById('banner-upload').value = ''; return;
+        }
+        localStorage.setItem('sms_custom_banner', e.target.result);
+        localStorage.removeItem('sms_legal_header');
+        alert('Banner uploaded successfully!');
+        document.getElementById('banner-upload').value = '';
+        renderWebsiteHeader();
+      };
+      img.onerror = function () {
+        alert('Failed to load image. Please try another file.');
+        document.getElementById('banner-upload').value = '';
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  document.getElementById('form-branding').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var buildingName = document.getElementById('brand-building').value.trim();
+    var regNumber = document.getElementById('brand-reg').value.trim();
+    var surveyNumber = document.getElementById('brand-survey').value.trim();
+    var hissaNumber = document.getElementById('brand-hissa').value.trim();
+    var address = document.getElementById('brand-address').value.trim();
+    if (!buildingName || !regNumber || !surveyNumber || !address) {
+      alert('Please fill all required fields.');
+      return;
+    }
+    var data = { buildingName: buildingName, regNumber: regNumber, surveyNumber: surveyNumber, address: address };
+    if (hissaNumber) data.hissaNumber = hissaNumber;
+    localStorage.setItem('sms_legal_header', JSON.stringify(data));
+    localStorage.removeItem('sms_custom_banner');
+    alert('Legal header generated successfully!');
+    renderWebsiteHeader();
+  });
+
+  renderWebsiteHeader();
   populateMemberDropdown();
   renderMembersList();
   switchTab('maintenance');
