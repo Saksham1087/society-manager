@@ -143,8 +143,14 @@
       </div>
 
       <div class="mt-6 bg-white dark:bg-slate-800 rounded-xl shadow-sm p-5">
-        <input type="text" id="maint-search" placeholder="🔍 Search by Flat No..."
-               class="w-full rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white border px-3 py-2 text-sm mb-3 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        <div class="relative mb-3">
+          <input type="text" id="maint-search" placeholder="🔍 Search anything (Name, Flat, Month, Amount, Mode... or pick a date ->)"
+                 class="w-full rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white border px-3 py-2 text-sm pr-10 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          <input type="date" id="maint-date-picker"
+                 class="absolute right-0 top-0 h-full w-10 opacity-0 cursor-pointer"
+                 title="Pick a date to search">
+          <label for="maint-date-picker" class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none text-sm">📅</label>
+        </div>
         <div class="flex items-center gap-2 mb-3">
           <h3 class="text-md font-bold text-gray-800 dark:text-white">Recent Maintenance</h3>
           <div class="ml-auto flex gap-1">

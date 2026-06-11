@@ -139,12 +139,14 @@
     records = applyDateFilter(records, maintFilter);
     var query = (document.getElementById('maint-search').value || '').toLowerCase().trim();
     if (query) records = records.filter(function (r) {
+      var readableDate = r.date ? new Date(r.date).toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" }).toLowerCase() : '';
       return (r.flat || '').toLowerCase().indexOf(query) !== -1
         || (r.member || '').toLowerCase().indexOf(query) !== -1
+        || (r.mobile || '').toLowerCase().indexOf(query) !== -1
         || (r.category || '').toLowerCase().indexOf(query) !== -1
         || (r.mode || '').toLowerCase().indexOf(query) !== -1
-        || (r.date || '').toLowerCase().indexOf(query) !== -1
-        || (r.mobile || '').toLowerCase().indexOf(query) !== -1
+        || (r.date || '').indexOf(query) !== -1
+        || readableDate.indexOf(query) !== -1
         || String(r.amount || '').indexOf(query) !== -1;
     });
     if (!records.length) {
@@ -343,6 +345,13 @@
   });
 
   document.getElementById('maint-search').addEventListener('input', renderMaintenanceList);
+
+  document.getElementById('maint-date-picker').addEventListener('change', function () {
+    if (this.value) {
+      document.getElementById('maint-search').value = this.value;
+      renderMaintenanceList();
+    }
+  });
 
   document.getElementById('btnExportBackup').addEventListener('click', function () {
     var data = {
