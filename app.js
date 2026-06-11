@@ -191,13 +191,20 @@
       expenseList.innerHTML = '<p class="text-gray-400">No records yet.</p>';
       return;
     }
-    expenseList.innerHTML = records.slice().reverse().map(function (r) {
+    expenseList.innerHTML = records.slice().reverse().map(function (r, idx) {
+      var i = records.length - 1 - idx;
       return '<div class="flex justify-between items-center bg-gray-50 rounded-lg p-3">' +
         '<div><span class="font-semibold text-gray-800">' + esc(r.category) + '</span> ' +
         '<span class="text-gray-600">' + esc(r.vendor) + '</span></div>' +
         '<div class="text-right"><span class="font-bold text-green-700">\u20B9' + Number(r.amount).toFixed(2) + '</span>' +
-        '<br><span class="text-xs text-gray-400">' + esc(r.date) + '</span></div></div>';
+        '<br><span class="text-xs text-gray-400">' + esc(r.date) + '</span>' +
+        '<br><button class="btn-voucher text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 px-2 py-1 rounded transition mt-1" data-id="' + i + '">\uD83D\uDDA8\uFE0F Voucher</button></div></div>';
     }).join('');
+    [].slice.call(expenseList.querySelectorAll('.btn-voucher')).forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        printExpenseVoucher(parseInt(this.dataset.id));
+      });
+    });
   }
 
   function renderPendingList() {
@@ -586,22 +593,13 @@
   function renderWebsiteHeader() {
     var branding = document.getElementById('header-branding');
     if (!branding) return;
-    var customBanner = localStorage.getItem('sms_custom_banner');
     var legalHeader = localStorage.getItem('sms_legal_header');
-    if (customBanner) {
-      branding.innerHTML = '';
-      branding.style.backgroundImage = 'url(' + customBanner + ')';
-      branding.style.backgroundSize = 'cover';
-      branding.style.backgroundPosition = 'center';
-      branding.style.backgroundRepeat = 'no-repeat';
-      branding.style.height = '400px';
-      branding.style.padding = '0';
-    } else if (legalHeader) {
+    branding.style.backgroundImage = 'none';
+    branding.style.height = 'auto';
+    branding.style.padding = '';
+    if (legalHeader) {
       try {
         var h = JSON.parse(legalHeader);
-        branding.style.backgroundImage = 'none';
-        branding.style.height = 'auto';
-        branding.style.padding = '';
         branding.innerHTML =
           '<div class="px-4 py-6 text-center">' +
             '<h1 class="text-2xl font-bold">' + esc(h.buildingName) + '</h1>' +
@@ -611,71 +609,16 @@
             '<p class="text-sm opacity-90">' + esc(h.address).replace(/\n/g, '<br>') + '</p>' +
           '</div>';
       } catch (e) {
-        branding.innerHTML = '';
-        branding.style.backgroundImage = 'none';
-        branding.style.height = 'auto';
+        branding.innerHTML = '<div class="px-4 py-6 text-center"><h1 class="text-xl font-bold">Society Management System</h1></div>';
       }
     } else {
-      branding.innerHTML = '';
-      branding.style.backgroundImage = 'none';
-      branding.style.height = 'auto';
-      branding.style.padding = '';
-    }
-  }
-
-  function switchBrandTab(tab) {
-    var imgPanel = document.getElementById('brand-tab-img');
-    var formPanel = document.getElementById('brand-tab-form');
-    var imgBtn = document.getElementById('btn-brand-tab-img');
-    var formBtn = document.getElementById('btn-brand-tab-form');
-    if (!imgPanel || !formPanel) return;
-    imgPanel.classList.toggle('hidden', tab !== 'img');
-    formPanel.classList.toggle('hidden', tab !== 'form');
-    [imgBtn, formBtn].forEach(function (btn) {
-      btn.classList.remove('bg-blue-600', 'text-white', 'bg-gray-200', 'dark:bg-slate-600', 'text-gray-700', 'dark:text-gray-200');
-    });
-    if (tab === 'img') {
-      imgBtn.classList.add('bg-blue-600', 'text-white');
-      formBtn.classList.add('bg-gray-200', 'dark:bg-slate-600', 'text-gray-700', 'dark:text-gray-200');
-    } else {
-      formBtn.classList.add('bg-blue-600', 'text-white');
-      imgBtn.classList.add('bg-gray-200', 'dark:bg-slate-600', 'text-gray-700', 'dark:text-gray-200');
+      branding.innerHTML = '<div class="px-4 py-6 text-center"><h1 class="text-xl font-bold">Society Management System</h1></div>';
     }
   }
 
   document.getElementById('btnToggleBranding').addEventListener('click', function () {
     var panel = document.getElementById('brandingPanel');
     panel.classList.toggle('hidden');
-  });
-
-  document.getElementById('btn-brand-tab-img').addEventListener('click', function () { switchBrandTab('img'); });
-  document.getElementById('btn-brand-tab-form').addEventListener('click', function () { switchBrandTab('form'); });
-
-  document.getElementById('banner-upload').addEventListener('change', function () {
-    const file = this.files[0];
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Error: Image file size must not exceed 5MB!');
-      this.value = ''; return;
-    }
-    var reader = new FileReader();
-    reader.onload = function (e) {
-      localStorage.setItem('sms_custom_banner', e.target.result);
-      localStorage.removeItem('sms_legal_header');
-      var branding = document.getElementById('header-branding');
-      if (branding) {
-        branding.innerHTML = '';
-        branding.style.backgroundImage = 'url(' + e.target.result + ')';
-        branding.style.backgroundSize = 'cover';
-        branding.style.backgroundPosition = 'center';
-        branding.style.backgroundRepeat = 'no-repeat';
-        branding.style.height = '400px';
-        branding.style.padding = '0';
-      }
-      document.getElementById('banner-upload').value = '';
-      alert('Banner image successfully applied!');
-    };
-    reader.readAsDataURL(file);
   });
 
   document.getElementById('form-branding').addEventListener('submit', function (e) {
@@ -692,9 +635,126 @@
     var data = { buildingName: buildingName, regNumber: regNumber, surveyNumber: surveyNumber, address: address };
     if (hissaNumber) data.hissaNumber = hissaNumber;
     localStorage.setItem('sms_legal_header', JSON.stringify(data));
-    localStorage.removeItem('sms_custom_banner');
     alert('Legal header generated successfully!');
     renderWebsiteHeader();
+  });
+
+  var voucherExpenseId = null;
+
+  function printExpenseVoucher(id) {
+    voucherExpenseId = id;
+    var modal = document.getElementById('voucherModal');
+    var setup = document.getElementById('voucher-setup');
+    var printArea = document.getElementById('voucher-print-area');
+    var logo = localStorage.getItem('sms_voucher_logo');
+    var header = localStorage.getItem('sms_legal_header');
+    if (logo || header) {
+      setup.classList.add('hidden');
+      printArea.classList.remove('hidden');
+      renderVoucherPrint(id, logo, header);
+    } else {
+      setup.classList.remove('hidden');
+      printArea.classList.add('hidden');
+    }
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+
+  function renderVoucherPrint(id, logo, header) {
+    var records = getExpenseRecords();
+    var exp = records[id];
+    if (!exp) return;
+    var html = '<div class="p-6" style="font-family: Arial, sans-serif; color: #000;">';
+    if (logo) {
+      html += '<div class="text-center mb-4"><img src="' + logo + '" style="max-height:100px; max-width:100%;" alt="Logo"></div>';
+    } else if (header) {
+      try {
+        var h = JSON.parse(header);
+        html += '<div class="text-center mb-4">' +
+          '<h2 style="font-size:20px; font-weight:bold; margin:0;">' + esc(h.buildingName) + '</h2>' +
+          '<p style="font-size:12px; margin:2px 0;">Reg No: ' + esc(h.regNumber) + ' | Survey No: ' + esc(h.surveyNumber) +
+          (h.hissaNumber ? ' | Hissa No: ' + esc(h.hissaNumber) : '') + '</p>' +
+          '<hr style="border: none; border-top: 1px solid #333; margin: 8px auto; max-width: 80%;">' +
+          '<p style="font-size:11px; margin:2px 0;">' + esc(h.address).replace(/\n/g, '<br>') + '</p>' +
+          '</div>';
+      } catch (e) {}
+    }
+    html += '<h3 style="text-align:center; font-size:16px; margin:16px 0 12px; border-bottom:2px solid #333; padding-bottom:8px;">Expense Voucher</h3>';
+    html += '<table style="width:100%; border-collapse: collapse; font-size:13px;">';
+    html += '<tr><td style="padding:6px 8px; font-weight:bold; border:1px solid #999; width:35%;">Date</td><td style="padding:6px 8px; border:1px solid #999;">' + esc(exp.date) + '</td></tr>';
+    html += '<tr><td style="padding:6px 8px; font-weight:bold; border:1px solid #999;">Category</td><td style="padding:6px 8px; border:1px solid #999;">' + esc(exp.category) + '</td></tr>';
+    html += '<tr><td style="padding:6px 8px; font-weight:bold; border:1px solid #999;">Amount</td><td style="padding:6px 8px; border:1px solid #999;">\u20B9' + Number(exp.amount).toFixed(2) + '</td></tr>';
+    html += '<tr><td style="padding:6px 8px; font-weight:bold; border:1px solid #999;">Payment Mode</td><td style="padding:6px 8px; border:1px solid #999;">' + esc(exp.mode) + '</td></tr>';
+    html += '<tr><td style="padding:6px 8px; font-weight:bold; border:1px solid #999;">Vendor</td><td style="padding:6px 8px; border:1px solid #999;">' + esc(exp.vendor) + '</td></tr>';
+    if (exp.billNo) html += '<tr><td style="padding:6px 8px; font-weight:bold; border:1px solid #999;">Bill / Ref No.</td><td style="padding:6px 8px; border:1px solid #999;">' + esc(exp.billNo) + '</td></tr>';
+    if (exp.description) html += '<tr><td style="padding:6px 8px; font-weight:bold; border:1px solid #999;">Description</td><td style="padding:6px 8px; border:1px solid #999;">' + esc(exp.description) + '</td></tr>';
+    html += '</table>';
+    html += '<p style="text-align:right; font-size:11px; margin-top:16px; color:#555;">Generated by Society Management System</p>';
+    html += '</div>';
+    document.getElementById('voucher-content').innerHTML = html;
+  }
+
+  document.getElementById('voucher-logo-upload').addEventListener('change', function () {
+    var file = this.files[0];
+    if (!file) return;
+    if (['image/jpeg', 'image/png', 'image/webp'].indexOf(file.type) === -1) {
+      alert('Only JPEG, PNG, or WebP images are allowed.');
+      this.value = ''; return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Error: Image file size must not exceed 5MB!');
+      this.value = ''; return;
+    }
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      localStorage.setItem('sms_voucher_logo', e.target.result);
+      document.getElementById('voucher-logo-upload').value = '';
+      var modal = document.getElementById('voucherModal');
+      document.getElementById('voucher-setup').classList.add('hidden');
+      document.getElementById('voucher-print-area').classList.remove('hidden');
+      renderVoucherPrint(voucherExpenseId, e.target.result, localStorage.getItem('sms_legal_header'));
+    };
+    reader.readAsDataURL(file);
+  });
+
+  document.getElementById('btn-use-header-details').addEventListener('click', function () {
+    var header = localStorage.getItem('sms_legal_header');
+    if (!header) {
+      alert('No society header found. Please set up the branding form first.');
+      return;
+    }
+    document.getElementById('voucher-setup').classList.add('hidden');
+    document.getElementById('voucher-print-area').classList.remove('hidden');
+    renderVoucherPrint(voucherExpenseId, null, header);
+  });
+
+  document.getElementById('btn-voucher-skip').addEventListener('click', function () {
+    document.getElementById('voucher-setup').classList.add('hidden');
+    document.getElementById('voucher-print-area').classList.remove('hidden');
+    renderVoucherPrint(voucherExpenseId, null, null);
+  });
+
+  document.getElementById('btn-print-voucher').addEventListener('click', function () {
+    window.print();
+  });
+
+  document.getElementById('btn-close-voucher').addEventListener('click', function () {
+    var modal = document.getElementById('voucherModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  });
+
+  document.getElementById('btn-voucher-close-setup').addEventListener('click', function () {
+    var modal = document.getElementById('voucherModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  });
+
+  document.getElementById('voucherModal').addEventListener('click', function (e) {
+    if (e.target === this) {
+      this.classList.add('hidden');
+      this.classList.remove('flex');
+    }
   });
 
   renderWebsiteHeader();
