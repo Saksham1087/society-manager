@@ -447,24 +447,7 @@
     }
   });
 
-  function promptBackupChoice() {
-    var choice = prompt(
-      'Select data to backup:\n\n' +
-      '1 - Maintenance\n' +
-      '2 - Expenses\n' +
-      '3 - Defaulters\n' +
-      '4 - Members\n' +
-      '5 - Export All (Complete Master Backup)\n\n' +
-      'Enter a number (1-5):'
-    );
-    if (choice === null) return null;
-    choice = choice.trim();
-    if (!/^[1-5]$/.test(choice)) {
-      alert('Invalid option. Please enter a number between 1 and 5.');
-      return null;
-    }
-    return parseInt(choice, 10);
-  }
+  var currentExportType = null;
 
   function downloadJson(data, filename) {
     var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -478,34 +461,139 @@
     URL.revokeObjectURL(url);
   }
 
-  document.getElementById('btnExportBackup').addEventListener('click', function () {
-    var choice = promptBackupChoice();
-    if (choice === null) return;
-    var data, filename;
-    if (choice === 5) {
-      data = {
-        sms_maintenance: getMaintenanceRecords(),
-        sms_expenses: getExpenseRecords(),
-        sms_pending: getPendingRecords(),
-        sms_members: getMemberRecords()
+  function downloadCsv(csv, filename) {
+    if (!csv) { alert('No data to export.'); return; }
+    var blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function toCsvRow(values) {
+    return values.map(function (v) {
+      var str = String(v == null ? '' : v);
+      return '"' + str.replace(/"/g, '""') + '"';
+    }).join(',') + '\n';
+  }
+
+  function showExportModal(type) {
+    currentExportType = type;
+    var modal = document.getElementById('export-modal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+
+  function hideExportModal() {
+    var modal = document.getElementById('export-modal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    currentExportType = null;
+  }
+
+  function performExport(btnId) {
+    var type = currentExportType;
+    hideExportModal();
+    if (!type) return;
+
+    var isAll = btnId === 'btn-exp-all';
+
+    if (type === 'json') {
+      var data, filename;
+      if (isAll) {
+        data = {
+          sms_maintenance: getMaintenanceRecords(),
+          sms_expenses: getExpenseRecords(),
+          sms_pending: getPendingRecords(),
+          sms_members: getMemberRecords()
+        };
+        filename = 'society_complete_master_backup.json';
+      } else {
+        var jsonMap = {
+          'btn-exp-maint': { key: 'sms_maintenance', getter: getMaintenanceRecords, label: 'maintenance' },
+          'btn-exp-exp':   { key: 'sms_expenses',   getter: getExpenseRecords,   label: 'expenses' },
+          'btn-exp-def':   { key: 'sms_pending',     getter: getPendingRecords,   label: 'defaulters' },
+          'btn-exp-mem':   { key: 'sms_members',     getter: getMemberRecords,    label: 'members' }
+        };
+        var cfg = jsonMap[btnId];
+        if (!cfg) return;
+        data = {};
+        data[cfg.key] = cfg.getter();
+        filename = 'society_' + cfg.label + '_backup.json';
+      }
+      downloadJson(data, filename);
+
+    } else if (type === 'csv') {
+      var csvMap = {
+        'btn-exp-maint': {
+          getter: getMaintenanceRecords,
+          headers: ['Date', 'Flat', 'Name', 'Mobile', 'Category', 'Mode', 'Amount'],
+          fields: ['date', 'flat', 'member', 'mobile', 'category', 'mode', 'amount'],
+          filename: 'society_maintenance_ledger.csv'
+        },
+        'btn-exp-exp': {
+          getter: getExpenseRecords,
+          headers: ['Date', 'Category', 'Amount', 'Vendor', 'Mode', 'Bill No', 'Description'],
+          fields: ['date', 'category', 'amount', 'vendor', 'mode', 'billNo', 'description'],
+          filename: 'society_expenses_ledger.csv'
+        },
+        'btn-exp-def': {
+          getter: getPendingRecords,
+          headers: ['Date', 'Flat', 'Name', 'Mobile', 'Category', 'Amount'],
+          fields: ['date', 'flat', 'member', 'mobile', 'category', 'amount'],
+          filename: 'society_defaulters_ledger.csv'
+        },
+        'btn-exp-mem': {
+          getter: function () { return JSON.parse(localStorage.getItem('sms_members')) || []; },
+          headers: ['Name', 'Flat', 'Mobile No'],
+          fields: ['name', 'flat', 'phone'],
+          filename: 'society_members_directory.csv'
+        },
+        'btn-exp-all': {
+          getter: getMaintenanceRecords,
+          headers: ['Date', 'Flat', 'Name', 'Mobile', 'Category', 'Mode', 'Amount'],
+          fields: ['date', 'flat', 'member', 'mobile', 'category', 'mode', 'amount'],
+          filename: 'society_complete_ledger.csv'
+        }
       };
-      filename = 'society_complete_master_backup.json';
-    } else {
-      var keyMap = { 1: 'sms_maintenance', 2: 'sms_expenses', 3: 'sms_pending', 4: 'sms_members' };
-      var labelMap = { 1: 'maintenance', 2: 'expenses', 3: 'defaulters', 4: 'members' };
-      var getterMap = {
-        1: getMaintenanceRecords,
-        2: getExpenseRecords,
-        3: getPendingRecords,
-        4: getMemberRecords
-      };
-      var key = keyMap[choice];
-      var records = getterMap[choice]();
-      data = {};
-      data[key] = records;
-      filename = 'society_' + labelMap[choice] + '_backup.json';
+      var cfg = csvMap[btnId];
+      if (!cfg) return;
+      var records = cfg.getter();
+      if (!records.length) { alert('No records to export.'); return; }
+      var csv = toCsvRow(cfg.headers);
+      records.forEach(function (r) {
+        var values = cfg.fields.map(function (f) { return r[f]; });
+        csv += toCsvRow(values);
+      });
+      downloadCsv(csv, cfg.filename);
     }
-    downloadJson(data, filename);
+  }
+
+  document.getElementById('btnExportCsv').addEventListener('click', function () {
+    showExportModal('csv');
+  });
+
+  document.getElementById('btnBackupJson').addEventListener('click', function () {
+    showExportModal('json');
+  });
+
+  document.getElementById('btnExportBackup').addEventListener('click', function () {
+    showExportModal('json');
+  });
+
+  document.getElementById('btn-exp-maint').addEventListener('click', function () { performExport('btn-exp-maint'); });
+  document.getElementById('btn-exp-exp').addEventListener('click', function () { performExport('btn-exp-exp'); });
+  document.getElementById('btn-exp-def').addEventListener('click', function () { performExport('btn-exp-def'); });
+  document.getElementById('btn-exp-mem').addEventListener('click', function () { performExport('btn-exp-mem'); });
+  document.getElementById('btn-exp-all').addEventListener('click', function () { performExport('btn-exp-all'); });
+  document.getElementById('btn-exp-cancel').addEventListener('click', hideExportModal);
+
+  document.getElementById('export-modal').addEventListener('click', function (e) {
+    if (e.target === this) hideExportModal();
   });
 
   document.getElementById('btnImportBackup').addEventListener('click', function () {
@@ -535,112 +623,6 @@
     };
     reader.readAsText(file);
     this.value = '';
-  });
-
-  function downloadCsv(csv, filename) {
-    if (!csv) { alert('No data to export.'); return; }
-    var blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }
-
-  function toCsvRow(values) {
-    return values.map(function (v) {
-      var str = String(v == null ? '' : v);
-      return '"' + str.replace(/"/g, '""') + '"';
-    }).join(',') + '\n';
-  }
-
-  document.getElementById('btnExportCsv').addEventListener('click', function () {
-    var choice = prompt(
-      'Select data to export as CSV:\n\n' +
-      '1 - Maintenance\n' +
-      '2 - Expenses\n' +
-      '3 - Defaulters\n' +
-      '4 - Members\n\n' +
-      'Enter a number (1-4):'
-    );
-    if (choice === null) return;
-    choice = choice.trim();
-    if (!/^[1-4]$/.test(choice)) {
-      alert('Invalid option. Please enter a number between 1 and 4.');
-      return;
-    }
-    choice = parseInt(choice, 10);
-
-    var records, csv, filename;
-
-    if (choice === 1) {
-      records = getMaintenanceRecords();
-      if (!records.length) { alert('No maintenance records to export.'); return; }
-      csv = toCsvRow(['Date', 'Flat', 'Name', 'Mobile', 'Category', 'Mode', 'Amount']);
-      records.forEach(function (r) {
-        csv += toCsvRow([r.date, r.flat, r.member, r.mobile, r.category, r.mode, r.amount]);
-      });
-      filename = 'society_maintenance_ledger.csv';
-    } else if (choice === 2) {
-      records = getExpenseRecords();
-      if (!records.length) { alert('No expense records to export.'); return; }
-      csv = toCsvRow(['Date', 'Category', 'Amount', 'Vendor', 'Mode', 'Bill No', 'Description']);
-      records.forEach(function (r) {
-        csv += toCsvRow([r.date, r.category, r.amount, r.vendor, r.mode, r.billNo, r.description]);
-      });
-      filename = 'society_expenses_ledger.csv';
-    } else if (choice === 3) {
-      records = getPendingRecords();
-      if (!records.length) { alert('No defaulter records to export.'); return; }
-      csv = toCsvRow(['Date', 'Flat', 'Name', 'Mobile', 'Category', 'Amount']);
-      records.forEach(function (r) {
-        csv += toCsvRow([r.date, r.flat, r.member, r.mobile, r.category, r.amount]);
-      });
-      filename = 'society_defaulters_ledger.csv';
-    } else if (choice === 4) {
-      records = JSON.parse(localStorage.getItem('sms_members')) || [];
-      if (!records.length) { alert('No member records to export.'); return; }
-      csv = toCsvRow(['Name', 'Flat', 'Mobile No']);
-      records.forEach(function (r) {
-        csv += toCsvRow([r.name, r.flat, r.phone]);
-      });
-      filename = 'society_members_directory.csv';
-    }
-
-    downloadCsv(csv, filename);
-  });
-
-  document.getElementById('btnBackupJson').addEventListener('click', function () {
-    var choice = promptBackupChoice();
-    if (choice === null) return;
-    var data, filename;
-    if (choice === 5) {
-      data = {
-        sms_maintenance: getMaintenanceRecords(),
-        sms_expenses: getExpenseRecords(),
-        sms_pending: getPendingRecords(),
-        sms_members: getMemberRecords()
-      };
-      filename = 'society_complete_master_backup.json';
-    } else {
-      var keyMap = { 1: 'sms_maintenance', 2: 'sms_expenses', 3: 'sms_pending', 4: 'sms_members' };
-      var labelMap = { 1: 'maintenance', 2: 'expenses', 3: 'defaulters', 4: 'members' };
-      var getterMap = {
-        1: getMaintenanceRecords,
-        2: getExpenseRecords,
-        3: getPendingRecords,
-        4: getMemberRecords
-      };
-      var key = keyMap[choice];
-      var records = getterMap[choice]();
-      data = {};
-      data[key] = records;
-      filename = 'society_' + labelMap[choice] + '_backup.json';
-    }
-    downloadJson(data, filename);
   });
 
   document.getElementById('btnRestoreBackup').addEventListener('click', function () {

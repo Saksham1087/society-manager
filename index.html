@@ -394,6 +394,38 @@
     </div>
   </div>
 
+  <div id="export-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 dark:bg-black/60">
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-sm w-full mx-4 p-6">
+      <h2 class="text-lg font-bold text-gray-800 dark:text-white text-center mb-4">Choose Data to Export</h2>
+      <div class="space-y-2">
+        <button id="btn-exp-maint"
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition text-sm">
+          Maintenance
+        </button>
+        <button id="btn-exp-exp"
+                class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 rounded-lg transition text-sm">
+          Expenses
+        </button>
+        <button id="btn-exp-def"
+                class="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2.5 rounded-lg transition text-sm">
+          Defaulters
+        </button>
+        <button id="btn-exp-mem"
+                class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2.5 rounded-lg transition text-sm">
+          Members
+        </button>
+        <button id="btn-exp-all"
+                class="w-full bg-gray-700 hover:bg-gray-800 text-white font-semibold py-2.5 rounded-lg transition text-sm">
+          Export Everything
+        </button>
+      </div>
+      <button id="btn-exp-cancel"
+              class="w-full mt-4 bg-gray-200 dark:bg-slate-600 hover:bg-gray-300 dark:hover:bg-slate-500 text-gray-800 dark:text-white font-semibold py-2 rounded-lg transition text-sm">
+        Cancel
+      </button>
+    </div>
+  </div>
+
   <script src="storage.js"></script>
   <script src="app.js"></script>
 </body>
