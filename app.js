@@ -26,7 +26,7 @@
   const tabMembers = document.getElementById('tabMembers');
   const moduleMembers = document.getElementById('moduleMembers');
   const formMember = document.getElementById('form-member');
-  const maintFlat = document.getElementById('maintFlat');
+  const maintFlat = document.getElementById('maint-flat');
 
   const modalSmsBtn = document.getElementById('modal-sms-btn');
   const modalWaBtn = document.getElementById('modal-wa-btn');
@@ -232,36 +232,50 @@
   }
 
   function populateMemberDropdown() {
-    var members = getMemberRecords();
+    var members = JSON.parse(localStorage.getItem('sms_members')) || [];
     maintFlat.innerHTML = '<option value="">Select Flat</option>';
     members.forEach(function (m) {
       var opt = document.createElement('option');
       opt.value = m.flat;
-      opt.textContent = m.flat + '  -  ' + m.name;
+      opt.textContent = m.flat + (m.name ? ' - ' + m.name : '');
       maintFlat.appendChild(opt);
     });
   }
 
+  function removeMember(id) {
+    var members = JSON.parse(localStorage.getItem('sms_members')) || [];
+    members = members.filter(function (m) { return m.id !== id; });
+    localStorage.setItem('sms_members', JSON.stringify(members));
+    populateMemberDropdown();
+    renderMembersList();
+  }
+
   function renderMembersList() {
-    var members = getMemberRecords();
+    var members = JSON.parse(localStorage.getItem('sms_members')) || [];
     var el = document.getElementById('list-members');
-    if (!members.length) { el.innerHTML = '<p class="text-gray-400">No members yet.</p>'; return; }
-    el.innerHTML = members.map(function (m) {
-      return '<div class="flex justify-between items-center bg-gray-50 dark:bg-slate-700/50 rounded-lg p-3">' +
-        '<div><span class="font-semibold text-gray-800 dark:text-white">' + esc(m.name) + '</span> ' +
-        '<span class="text-gray-600 dark:text-gray-300">' + esc(m.flat) + '</span>' +
-        '<br><span class="text-xs text-gray-400 dark:text-gray-400">' + esc(m.phone) + '</span></div>' +
-        '<button class="btn-remove-member text-xs bg-red-100 dark:bg-red-900/40 hover:bg-red-200 dark:hover:bg-red-800/50 text-red-700 dark:text-red-300 px-2 py-1 rounded transition font-medium" data-id="' + m.id + '">❌ Remove</button></div>';
-    }).join('');
-    [].slice.call(document.querySelectorAll('.btn-remove-member')).forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var id = parseInt(this.dataset.id);
-        if (confirm('Remove this member?')) {
-          removeMemberRecord(id);
-          populateMemberDropdown();
-          renderMembersList();
+    if (!el) return;
+    if (!members.length) {
+      el.innerHTML = '<p class="text-sm text-gray-400 italic text-center py-4">No members registered yet.</p>';
+      return;
+    }
+    el.innerHTML = '';
+    members.forEach(function (m) {
+      var row = document.createElement('div');
+      row.className = 'flex justify-between items-center bg-gray-50 dark:bg-slate-700/50 rounded-lg p-3';
+      row.innerHTML =
+        '<div>' +
+          '<span class="font-semibold text-gray-800 dark:text-white">' + esc(m.name) + '</span> ' +
+          '<span class="text-gray-600 dark:text-gray-300">' + esc(m.flat) + '</span>' +
+          '<br><span class="text-xs text-gray-400 dark:text-gray-400">' + esc(m.phone) + '</span>' +
+        '</div>' +
+        '<button class="btn-delete-member text-xs bg-red-100 dark:bg-red-900/40 hover:bg-red-200 dark:hover:bg-red-800/50 text-red-700 dark:text-red-300 px-3 py-1.5 rounded transition font-medium">Delete</button>';
+      var delBtn = row.querySelector('.btn-delete-member');
+      delBtn.addEventListener('click', function () {
+        if (confirm('Remove ' + m.name + ' from the member list?')) {
+          removeMember(m.id);
         }
       });
+      el.appendChild(row);
     });
   }
 
@@ -296,22 +310,22 @@
       + 'Mode: ' + record.mode;
   }
 
-  maintFlat.addEventListener('change', function () {
-    var members = getMemberRecords();
+  document.getElementById('maint-flat').addEventListener('change', function () {
+    var members = JSON.parse(localStorage.getItem('sms_members')) || [];
     var selected = null;
     for (var i = 0; i < members.length; i++) {
       if (members[i].flat === this.value) { selected = members[i]; break; }
     }
-    document.getElementById('maintMember').value = selected ? selected.name : '';
-    document.getElementById('maintMobile').value = selected ? selected.phone : '';
+    document.getElementById('maint-name').value = selected ? selected.name : '';
+    document.getElementById('maint-phone').value = selected ? selected.phone : '';
   });
 
   formMain.addEventListener('submit', function (e) {
     e.preventDefault();
     var record = {
-      member: document.getElementById('maintMember').value,
-      flat: document.getElementById('maintFlat').value,
-      mobile: document.getElementById('maintMobile').value,
+      member: document.getElementById('maint-name').value,
+      flat: document.getElementById('maint-flat').value,
+      mobile: document.getElementById('maint-phone').value,
       category: getCategoryValue(maintCategory, 'maintCategoryOther'),
       amount: parseFloat(document.getElementById('maintAmount').value),
       date: document.getElementById('maintDate').value,
