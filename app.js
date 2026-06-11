@@ -138,7 +138,15 @@
     var records = getMaintenanceRecords();
     records = applyDateFilter(records, maintFilter);
     var query = (document.getElementById('maint-search').value || '').toLowerCase().trim();
-    if (query) records = records.filter(function (r) { return r.flat.toLowerCase().indexOf(query) !== -1; });
+    if (query) records = records.filter(function (r) {
+      return (r.flat || '').toLowerCase().indexOf(query) !== -1
+        || (r.member || '').toLowerCase().indexOf(query) !== -1
+        || (r.category || '').toLowerCase().indexOf(query) !== -1
+        || (r.mode || '').toLowerCase().indexOf(query) !== -1
+        || (r.date || '').toLowerCase().indexOf(query) !== -1
+        || (r.mobile || '').toLowerCase().indexOf(query) !== -1
+        || String(r.amount || '').indexOf(query) !== -1;
+    });
     if (!records.length) {
       maintList.innerHTML = '<p class="text-gray-400">' + (query ? 'No matching records.' : 'No records yet.') + '</p>';
       return;
@@ -303,19 +311,13 @@
   });
 
   function populateReceipt(record) {
-    var rows = [
-      ['Member', record.member],
-      ['Flat No', record.flat],
-      ['Mobile No', record.mobile],
-      ['Category', record.category],
-      ['Amount', '\u20B9' + Number(record.amount).toFixed(2)],
-      ['Date', record.date],
-      ['Payment Mode', record.mode]
-    ];
-    receiptBody.innerHTML = rows.map(function (pair) {
-      return '<tr class="border-b border-gray-100"><td class="py-2 pr-4 font-medium text-gray-600">' +
-        esc(pair[0]) + '</td><td class="py-2 text-right text-gray-800">' + esc(pair[1]) + '</td></tr>';
-    }).join('');
+    document.getElementById('rcpt-name').textContent = record.member;
+    document.getElementById('rcpt-flat').textContent = record.flat;
+    document.getElementById('rcpt-mobile').textContent = record.mobile;
+    document.getElementById('rcpt-category').textContent = record.category;
+    document.getElementById('rcpt-amount').textContent = '\u20B9' + Number(record.amount).toFixed(2);
+    document.getElementById('rcpt-date').textContent = record.date;
+    document.getElementById('rcpt-mode').textContent = record.mode;
   }
 
   btnViewReceipt.addEventListener('click', function () {

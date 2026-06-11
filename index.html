@@ -316,8 +316,16 @@
         <h2 class="text-lg font-bold text-gray-800 dark:text-white">Payment Receipt</h2>
         <p class="text-xs text-gray-500 dark:text-gray-400">Society Management System</p>
       </div>
-      <table class="w-full text-sm" id="receiptBody">
-        <tbody></tbody>
+      <table class="w-full text-sm">
+        <tbody id="receiptBody">
+          <tr class="border-b border-gray-100 dark:border-slate-700"><td class="py-2 pr-4 font-medium text-gray-600 dark:text-gray-300">Member</td><td class="py-2 text-right"><span id="rcpt-name" class="text-white dark:text-emerald-400 font-medium">-</span></td></tr>
+          <tr class="border-b border-gray-100 dark:border-slate-700"><td class="py-2 pr-4 font-medium text-gray-600 dark:text-gray-300">Flat No</td><td class="py-2 text-right"><span id="rcpt-flat" class="text-white dark:text-emerald-400 font-medium">-</span></td></tr>
+          <tr class="border-b border-gray-100 dark:border-slate-700"><td class="py-2 pr-4 font-medium text-gray-600 dark:text-gray-300">Mobile No</td><td class="py-2 text-right"><span id="rcpt-mobile" class="text-white dark:text-emerald-400 font-medium">-</span></td></tr>
+          <tr class="border-b border-gray-100 dark:border-slate-700"><td class="py-2 pr-4 font-medium text-gray-600 dark:text-gray-300">Category</td><td class="py-2 text-right"><span id="rcpt-category" class="text-white dark:text-emerald-400 font-medium">-</span></td></tr>
+          <tr class="border-b border-gray-100 dark:border-slate-700"><td class="py-2 pr-4 font-medium text-gray-600 dark:text-gray-300">Amount</td><td class="py-2 text-right"><span id="rcpt-amount" class="text-white dark:text-emerald-400 font-medium">-</span></td></tr>
+          <tr class="border-b border-gray-100 dark:border-slate-700"><td class="py-2 pr-4 font-medium text-gray-600 dark:text-gray-300">Date</td><td class="py-2 text-right"><span id="rcpt-date" class="text-white dark:text-emerald-400 font-medium">-</span></td></tr>
+          <tr class="border-b border-gray-100 dark:border-slate-700"><td class="py-2 pr-4 font-medium text-gray-600 dark:text-gray-300">Payment Mode</td><td class="py-2 text-right"><span id="rcpt-mode" class="text-white dark:text-emerald-400 font-medium">-</span></td></tr>
+        </tbody>
       </table>
       <div class="mt-5 flex gap-3 no-print">
         <button id="modal-sms-btn"
