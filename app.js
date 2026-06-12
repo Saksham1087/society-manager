@@ -805,11 +805,6 @@
     } catch (e) { alert('Restore error: ' + e.message); return false; }
   }
 
-  // ========== PANEL TOGGLE ==========
-  document.getElementById('btnToggleCloudSync').addEventListener('click', function () {
-    document.getElementById('cloudSyncPanel').classList.toggle('hidden');
-  });
-
   // ========== UNIFIED CLOUD BACKUP ==========
   function doCloudBackup(driveUrl) {
     var payload = exportDataPayload();
