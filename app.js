@@ -805,6 +805,11 @@
     } catch (e) { alert('Restore error: ' + e.message); return false; }
   }
 
+  // ========== CLOUD SYNC HUB TOGGLE ==========
+  document.getElementById('btn-toggle-cloud-hub').addEventListener('click', function () {
+    document.getElementById('cloudSyncHub').classList.toggle('hidden');
+  });
+
   // ========== UNIFIED CLOUD BACKUP ==========
   function doCloudBackup(driveUrl) {
     var payload = exportDataPayload();
