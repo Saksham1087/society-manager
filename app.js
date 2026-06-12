@@ -822,6 +822,7 @@
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    alert("📥 Backup file generated! \n\nTo save cloud storage space and overwrite your older backup:\nDrag the newly downloaded 'society_master_backup.json' file into your cloud window and click 'Replace existing file' if prompted.");
     window.open(driveUrl, '_blank');
   }
 
